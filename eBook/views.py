@@ -1,57 +1,62 @@
-from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse
-from .models import eBook, Category,eBookCategory
-from .command import CreateEbookCommand, EditEbookCommand, DeleteEbookCommand
+from django.shortcuts import get_object_or_404
+from .models import eBook, Category
+from .command import *
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework import status
+from eBook.serializers import eBookSerializer , CategorySerializer
 
-@api_view(['GET'])
-def ebook_list(request):
-    return Response({"message": "ebook_list"})
-    # ebooks = Ebook.objects.all()
-    # return render(request, 'ebook_list.html', {'ebooks': ebooks})
+class EbookAPI(APIView):
 
-@api_view(['GET'])
-def ebook_detail(request, ebook_id): # related to ShowBooksCommand
-    return Response({"message": "ebook_detail"})
-    # ebook = get_object_or_404(Ebook, pk=ebook_id)
-    # return render(request, 'ebook_detail.html', {'ebook': ebook})
+    def get(self, request ):
+        ebook_id = request.GET.get('id')
+        if not ebook_id:
+            command = ShowBooksCommand()
+            ebooks_data = command.execute()
+            return Response({"status": "success", "ebooks": ebooks_data}, status=status.HTTP_200_OK)
+        else:
+            command = ShowEbookDetailsCommand(ebook_id)
+            ebook_data = command.execute()
+            return Response(ebook_data, status=status.HTTP_200_OK)
+    
+    def post(self, request):
+        command = CreateEbookCommand(request.data)
+        result = command.execute()
+        if isinstance(result, dict):
+            return Response(result, status=status.HTTP_201_CREATED)
+        return Response(result, status=status.HTTP_400_BAD_REQUEST)
+    
+    def patch(self, request):
+        ebook_id = request.data.get('id')
+        command = EditEbookCommand(ebook_id, request.data)
+        success,message, data_or_errors = command.execute()
+        if success:
+            return Response({'message': message, 'data_or_errors': data_or_errors},status.HTTP_200_OK)
+        return Response({'message': message, 'data_or_errors': data_or_errors},status.HTTP_400_BAD_REQUEST)
+    
+    def delete(self, request):
+       ebook = get_object_or_404(eBook, id=request.data.get('id'))
+       command = DeleteEbookCommand(ebook.id)
+       command.execute()
+       return Response(status=status.HTTP_200_OK)
 
-@api_view(['GET'])
-def create_ebook(request):
-    return Response({"message": "Create ebook"})
-    # if request.method == 'POST':
-    #     form = EbookForm(request.POST)
-    #     if form.is_valid():
-    #         data = form.cleaned_data
-    #         command = CreateEbookCommand(data)
-    #         command.execute()
-    #         return JsonResponse({'success': True})
-    # else:
-    #     form = EbookForm()
-    # return render(request, 'create_ebook.html', {'form': form})
 
-@api_view(['GET'])
-def edit_ebook(request, ebook_id):
-    return Response({"message": "edit ebook"})
-    # ebook = get_object_or_404(Ebook, pk=ebook_id)
-    # if request.method == 'POST':
-    #     form = EbookForm(request.POST, instance=ebook)
-    #     if form.is_valid():
-    #         data = form.cleaned_data
-    #         command = UpdateEbookCommand(ebook_id, data)
-    #         command.execute()
-    #         return JsonResponse({'success': True})
-    # else:
-    #     form = EbookForm(instance=ebook)
-    # return render(request, 'update_ebook.html', {'form': form, 'ebook': ebook})
+class EbookCategoryAPI(APIView):
 
+    def get(self, request):
+        command = ShowCategoriesCommand()
+        categories_data = command.execute()
+        return Response({"status": "success", "categories": categories_data}, status=status.HTTP_200_OK)
+    
 @api_view(['GET'])
-def delete_ebook(request, ebook_id):
-    return Response({"message": "delete ebook"})
-    # ebook = get_object_or_404(Ebook, pk=ebook_id)
-    # if request.method == 'POST':
-    #     command = DeleteEbookCommand(ebook_id)
-    #     command.execute()
-    #     return JsonResponse({'success': True})
-    # return render(request, 'delete_ebook.html', {'ebook': ebook})
+def filter_books_by_category(request):
+    category_id = request.GET.get('id')
+    try:
+        category = Category.objects.get(pk=category_id)
+        command = FilterBooksByCategoryCommand(category_id)
+        ebooks_data = command.execute()
+        serializer = eBookSerializer(ebooks_data, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except Category.DoesNotExist:
+        return Response({"error": "Category not found"}, status=status.HTTP_404_NOT_FOUND)

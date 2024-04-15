@@ -1,5 +1,9 @@
 from abc import ABC, abstractmethod
-from .models import eBook
+
+from django.shortcuts import get_object_or_404
+from .models import eBook , Category
+from eBook.serializers import eBookSerializer , CategorySerializer
+from django.core.exceptions import ObjectDoesNotExist
 
 # Base Command class
 class Command(ABC):
@@ -13,7 +17,11 @@ class CreateEbookCommand(Command):
         self.data = data
 
     def execute(self):
-        eBook.objects.create(**self.data)
+        serializer = eBookSerializer(data=self.data)
+        if serializer.is_valid():
+            serializer.save()
+            return serializer.data
+        return serializer.errors
 
 class EditEbookCommand(Command):
     def __init__(self, ebook_id, data):
@@ -21,10 +29,16 @@ class EditEbookCommand(Command):
         self.data = data
 
     def execute(self):
-        ebook = eBook.objects.get(id=self.ebook_id)
-        for key, value in self.data.items():
-            setattr(ebook, key, value)
-        ebook.save()
+        try:
+            ebook = eBook.objects.get(id=self.ebook_id)
+            serializer = eBookSerializer(ebook, data=self.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return True,"Success", serializer.data
+            else:
+                return False,"Error", serializer.errors
+        except ObjectDoesNotExist:
+            return False,"eBook not found", None
 
 class DeleteEbookCommand(Command):
     def __init__(self, ebook_id):
@@ -35,16 +49,37 @@ class DeleteEbookCommand(Command):
 
 class ShowBooksCommand(Command):
     def execute(self):
-        return eBook.objects.all()
+        ebooks = eBook.objects.all()
+        serialized_ebooks = []
+        for ebook in ebooks:
+            categories = ebook.categories.all()
+            serialized_ebook = eBookSerializer(ebook).data
+            serialized_ebook['categories'] = CategorySerializer(categories, many=True).data
+            serialized_ebooks.append(serialized_ebook)
+        return serialized_ebooks
     
-class FilterBooksByCategoryCommand(Command):
-    def __init__(self, category):
-        self.category = category
+class ShowEbookDetailsCommand(Command):
+    def __init__(self, ebook_id):
+        self.ebook_id = ebook_id
 
     def execute(self):
-        return eBook.objects.filter(category=self.category)
+        ebook = get_object_or_404(eBook, id=self.ebook_id)
+        categories = ebook.categories.all()
+        serializer = eBookSerializer(ebook)
+        serialized_data = serializer.data
+        serialized_data['categories'] = CategorySerializer(categories, many=True).data
+        return serialized_data
+    
+class FilterBooksByCategoryCommand(Command):
+    def __init__(self, category_id):
+        self.category_id = category_id
+
+    def execute(self):
+        return eBook.objects.filter(categories__id=self.category_id)
+
     
 class ShowCategoriesCommand(Command):
     def execute(self):
-        return eBook.objects.values_list('category', flat=True).distinct()
-
+        categories = Category.objects.all()
+        serializer = CategorySerializer(categories, many=True)
+        return serializer.data
