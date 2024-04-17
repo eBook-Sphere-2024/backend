@@ -7,6 +7,8 @@ from rest_framework import status
 
 from eBook.models import eBook
 from eBook.serializers import eBookSerializer
+from User.models import User
+from User.serializers import UserSerializer
 from search.semanticSearch import *
 
 
@@ -15,13 +17,29 @@ class searchAPI(APIView):
     def get(self, request):
         query = request.GET.get('query')
         if query:
+            # Perform the search query
             results = eBook.objects.filter(
-                Q(title__icontains=query) | Q(author__icontains=query)
+                Q(title__icontains=query) | Q(author__username__icontains=query)
             )
-            serializer = eBookSerializer(results, many=True)
-            return Response(serializer.data)
+
+            # Retrieve the user instances for the authors of the eBooks
+            user_ids = results.values_list('author', flat=True)
+            users = User.objects.filter(id__in=user_ids)
+
+            # Serialize eBook and its author
+            ebook_serializer = eBookSerializer(results, many=True)
+            user_serializer = UserSerializer(users, many=True)
+
+            # Add author data to eBook serializer
+            for ebook_data in ebook_serializer.data:
+                author_id = ebook_data['author']
+                author_data = next((user for user in user_serializer.data if user['id'] == author_id), None)
+                if author_data:
+                    ebook_data['author'] = author_data
+
+            return Response(ebook_serializer.data)
         else:
-            return Response({"error": "No search query provided"}, status=400)
+            return Response({"error": "No search query provided"}, status=status.HTTP_400_BAD_REQUEST)
         
 class RelatedEBookAPI(APIView):
     def get(self, request):

@@ -6,7 +6,7 @@ from .models import eBook, Category
 
 class eBookSerializer(serializers.ModelSerializer):
     categories = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all(), many=True)
-    author = UserSerializer()
+    author = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
     class Meta:
         model = eBook
         fields = '__all__'
