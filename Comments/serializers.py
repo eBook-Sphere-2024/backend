@@ -5,7 +5,7 @@ from eBook.models import eBook
 
 class CommentSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
-    book = serializers.PrimaryKeyRelatedField(queryset=eBook.objects.all())
+    ebook = serializers.PrimaryKeyRelatedField(queryset=eBook.objects.all())
 
     class Meta:
         model = Comment

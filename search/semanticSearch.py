@@ -7,6 +7,8 @@ import fitz  # PyMuPDF
 from concurrent.futures import ThreadPoolExecutor  
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
+from rest_framework.response import Response
+from rest_framework import status
 
 # Connect to Elasticsearch
 es = Elasticsearch(['http://localhost:9200'], basic_auth=('elastic', '123456'))
@@ -27,8 +29,7 @@ def extract_text_from_pdf(pdf_path):
         doc.close()
         return text
     except Exception as e:
-        print(f"Error occurred while extracting text from {pdf_path}: {e}")
-        return ''
+        raise RuntimeError(f"Error occurred while extracting text from {pdf_path}: {e}")
 
 # Function to embed text using BERT
 def embed_text(text):
@@ -61,7 +62,7 @@ def index_document(pdf_path):
             es.index(index=index_name, body=document_body)
             print(f"Indexed document: {pdf_path}")
         except Exception as e:
-            print(f"Error occurred while indexing {pdf_path}: {e}")
+            raise RuntimeError(f"Error occurred while indexing {pdf_path}: {e}")
 
 def index_documents(pdf_directory):
     with ThreadPoolExecutor() as executor:
@@ -102,8 +103,7 @@ def semantic_search(query):
         return unique_hits
         
     except Exception as e:
-        print("Error occurred during semantic search:", e)
-        return []
+        raise RuntimeError(f"Error occurred during semantic search: {e}")
 
 # Index documents
 def index_eBook():
@@ -114,4 +114,3 @@ def index_eBook():
 def search_eBook(query):
     results = semantic_search(query)
     return results
-    

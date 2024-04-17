@@ -4,13 +4,29 @@ from rest_framework.response import Response
 from Comments.models import Comment
 from rest_framework import status
 from Comments.serializers import CommentSerializer
+from eBook.serializers import eBookSerializer
+from User.serializers import UserSerializer
 
 class CommentAPI(APIView):
     def get(self, request):
         comments = Comment.objects.all()
-        serializer = CommentSerializer(comments, many=True)
-        return Response({"status": "success", "Comments": serializer.data}, status=status.HTTP_200_OK)
-    
+        serialized_comments = []
+        for comment in comments:
+            # Retrieve associated eBook and user instances
+            ebook_instance = comment.ebook
+            user_instance = comment.user
+
+            # Serialize comment, eBook, and user instances
+            serialized_comment = CommentSerializer(comment).data
+            serialized_comment['ebook'] = eBookSerializer(ebook_instance).data
+            serialized_comment['user'] = UserSerializer(user_instance).data
+            
+            # Append serialized comment to the list
+            serialized_comments.append(serialized_comment)
+        
+        # Return response without .data
+        return Response({"status": "success", "comments": serialized_comments}, status=status.HTTP_200_OK)
+        
     def post(self, request):
         serializer = CommentSerializer(data=request.data)
         if serializer.is_valid():
@@ -31,3 +47,4 @@ class CommentAPI(APIView):
         comment = get_object_or_404(Comment, id=request.data.get('id'))
         comment.delete()
         return Response(status=status.HTTP_200_OK)
+

@@ -10,6 +10,7 @@ from eBook.serializers import eBookSerializer
 from search.semanticSearch import *
 
 
+
 class searchAPI(APIView):
     def get(self, request):
         query = request.GET.get('query')
@@ -21,23 +22,28 @@ class searchAPI(APIView):
             return Response(serializer.data)
         else:
             return Response({"error": "No search query provided"}, status=400)
-    
-    
-class related_eBook_API(APIView):
-    def get(self , reuest ):
-        query = reuest.GET.get('query')
-        print(query)
-        if query:
-            results = search_eBook(query)
-            for hit in results:
-                print(hit['_score'], hit['_source']['filename'])
-            return Response({"status": "success"}, status.HTTP_200_OK)
-        else:
-            return Response({"error": "No search query provided"}, status.HTTP_400_BAD_REQUEST)
         
+class RelatedEBookAPI(APIView):
+    def get(self, request):
+        query = request.GET.get('query')
+        if query:
+            try:
+                results = search_eBook(query)
+                response_data = []
+                for hit in results:
+                    # Filter eBook instances by filename
+                    eBooks = eBook.objects.filter(content=hit['_source']['filename'])
+                    if eBooks:  # Check if any eBooks are found
+                        serializer = eBookSerializer(eBooks, many=True)
+                        response_data.append({"score": hit['_score'], "eBooks": serializer.data})
+                return Response({"status": "success", "results": response_data}, status=status.HTTP_200_OK)
+            except RuntimeError as e:
+                return Response({"status": "failed", "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({"error": "No search query provided"}, status=status.HTTP_400_BAD_REQUEST)
 
 class IndexAPIView(APIView):
     def get(self, request):
         index_eBook()
         return Response({"status": "success"}, status=status.HTTP_200_OK)
-        
+
