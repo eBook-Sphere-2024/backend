@@ -40,7 +40,10 @@ INSTALLED_APPS = [
     'eBook',
     'Template',
     'search',
+    'User',
+    'rest_framework.authtoken',
     'rest_framework',
+    'Comments'
 ]
 
 MIDDLEWARE = [

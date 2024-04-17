@@ -7,7 +7,7 @@ from rest_framework import status
 
 from eBook.models import eBook
 from eBook.serializers import eBookSerializer
-from search.ontology import *
+from search.semanticSearch import *
 
 
 class searchAPI(APIView):
