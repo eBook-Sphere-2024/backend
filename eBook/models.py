@@ -1,8 +1,7 @@
 from django.db import models
-from django.core.exceptions import ValidationError
-from django.core.validators import URLValidator
-from User.models import User
+from django.contrib.auth.models import User
 from Template.models import Template
+
 class Category(models.Model):
     name = models.CharField(max_length=100)
 

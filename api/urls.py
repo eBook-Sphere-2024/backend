@@ -1,7 +1,7 @@
 from django.urls import path
 from Comments.views import CommentAPI
 from eBook.views import *
-from User.views import LoginAPI, UserAPI
+from User.views import LoginAPI, UserAPI, User_Profile
 from Template.views import TemplateAPI
 from search.views import searchAPI , RelatedEBookAPI , IndexAPIView
 urlpatterns = [
@@ -15,4 +15,5 @@ urlpatterns = [
     path('index/',IndexAPIView.as_view()),
     path('comments/',CommentAPI.as_view()),
     path('template/',TemplateAPI.as_view()),
+    path('profile/',User_Profile.as_view())
 ]

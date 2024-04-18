@@ -7,8 +7,8 @@ from rest_framework import status
 
 from eBook.models import eBook
 from eBook.serializers import eBookSerializer
-from User.models import User
-from User.serializers import UserSerializer
+from django.contrib.auth.models import User
+from User.serializers import RegisterSerializer
 from search.semanticSearch import *
 
 
@@ -28,7 +28,7 @@ class searchAPI(APIView):
 
             # Serialize eBook and its author
             ebook_serializer = eBookSerializer(results, many=True)
-            user_serializer = UserSerializer(users, many=True)
+            user_serializer = RegisterSerializer(users, many=True)
 
             # Add author data to eBook serializer
             for ebook_data in ebook_serializer.data:
