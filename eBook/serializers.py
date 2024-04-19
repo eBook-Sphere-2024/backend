@@ -1,7 +1,5 @@
 from rest_framework import serializers
-
-from User.models import User
-from User.serializers import UserSerializer
+from django.contrib.auth.models import User
 from .models import eBook, Category
 
 class eBookSerializer(serializers.ModelSerializer):

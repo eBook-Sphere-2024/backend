@@ -5,7 +5,7 @@ from Comments.models import Comment
 from rest_framework import status
 from Comments.serializers import CommentSerializer
 from eBook.serializers import eBookSerializer
-from User.serializers import UserSerializer
+from User.serializers import RegisterSerializer
 
 class CommentAPI(APIView):
     def get(self, request):
@@ -19,7 +19,7 @@ class CommentAPI(APIView):
             # Serialize comment, eBook, and user instances
             serialized_comment = CommentSerializer(comment).data
             serialized_comment['ebook'] = eBookSerializer(ebook_instance).data
-            serialized_comment['user'] = UserSerializer(user_instance).data
+            serialized_comment['user'] = RegisterSerializer(user_instance).data
             
             # Append serialized comment to the list
             serialized_comments.append(serialized_comment)

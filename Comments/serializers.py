@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from Comments.models import Comment
-from User.models import User
+
+from django.contrib.auth.models import User
 from eBook.models import eBook
 
 class CommentSerializer(serializers.ModelSerializer):

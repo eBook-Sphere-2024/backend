@@ -1,7 +1,8 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 class Comment(models.Model):
-    user = models.ForeignKey('User.User', on_delete=models.CASCADE, related_name='user')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user')
     ebook = models.ForeignKey('eBook.eBook', on_delete=models.CASCADE, related_name='book')
     content = models.TextField()
     publish_date = models.DateField(auto_now_add=True)
