@@ -17,6 +17,7 @@ class eBook(models.Model):
     cover = models.CharField(max_length=2000)
     categories = models.ManyToManyField(Category, related_name='bookCategory' )
     template = models.ForeignKey(Template, on_delete=models.CASCADE,related_name='template')
+    rate = models.IntegerField(default=0) #form 5
 
     def __str__(self):
         return self.title

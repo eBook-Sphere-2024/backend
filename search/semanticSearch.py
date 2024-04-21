@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 # Connect to Elasticsearch
-es = Elasticsearch(['http://localhost:9200'], basic_auth=('elastic', '123456'))
+es = Elasticsearch(['https://localhost:9200'], basic_auth=('elastic', '123456'),verify_certs=False)
 
 # Initialize BERT tokenizer and model
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
