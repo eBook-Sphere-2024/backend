@@ -14,7 +14,7 @@ class EbookAPI(APIView):
         if not ebook_id:
             command = ShowBooksCommand()
             ebooks_data = command.execute()
-            return Response({"status": "success", "ebooks": ebooks_data}, status=status.HTTP_200_OK)
+            return Response(ebooks_data, status=status.HTTP_200_OK)
         else:
             command = ShowEbookDetailsCommand(ebook_id)
             ebook_data = command.execute()
@@ -47,7 +47,7 @@ class EbookCategoryAPI(APIView):
     def get(self, request):
         command = ShowCategoriesCommand()
         categories_data = command.execute()
-        return Response({"status": "success", "categories": categories_data}, status=status.HTTP_200_OK)
+        return Response(categories_data, status=status.HTTP_200_OK)
     
 @api_view(['GET'])
 def filter_books_by_category(request):
@@ -60,3 +60,4 @@ def filter_books_by_category(request):
         return Response(serializer.data, status=status.HTTP_200_OK)
     except Category.DoesNotExist:
         return Response({"error": "Category not found"}, status=status.HTTP_404_NOT_FOUND)
+    

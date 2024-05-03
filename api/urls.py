@@ -15,5 +15,5 @@ urlpatterns = [
     path('index/',IndexAPIView.as_view()),
     path('comments/',CommentAPI.as_view()),
     path('template/',TemplateAPI.as_view()),
-    path('profile/',User_Profile.as_view())
+    path('profile/',User_Profile.as_view()),
 ]
