@@ -19,6 +19,7 @@ class CreateEbookCommand(Command):
 
     def execute(self):
         serializer = eBookSerializer(data=self.data)
+        print(self.data)
         if serializer.is_valid():
             serializer.save()
             return serializer.data
@@ -90,3 +91,4 @@ class ShowCategoriesCommand(Command):
         categories = Category.objects.all()
         serializer = CategorySerializer(categories, many=True)
         return serializer.data
+
