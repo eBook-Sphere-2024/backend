@@ -14,11 +14,8 @@ class eBookSerializer(serializers.ModelSerializer):
         depth = 1
 
     def validate(self, data):
-        categories = data.get('categories')
-        if not categories or len(categories) < 1:
+        if 'categories' in data and (not data['categories'] or len(data['categories']) < 1):
             raise serializers.ValidationError("At least one category is required for an eBook.")
-        elif 'author' not in data:
-            raise serializers.ValidationError("Author is required.")
         return data
     
 class CategorySerializer(serializers.ModelSerializer):
