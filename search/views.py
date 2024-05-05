@@ -68,7 +68,10 @@ class RelatedEBookAPI(APIView):
                 response_data = []
                 for hit in results:
                     # Filter eBook instances by filename
-                    eBooks = eBook.objects.filter(content=hit['_source']['filename'])
+
+                    #will be changed to content=hit['_source']['fileId']
+                    eBooks = eBook.objects.filter(title=hit['_source']['filename'][:-len('.pdf')])
+
                     if eBooks:  # Check if any eBooks are found
                         serializer = eBookSerializer(eBooks, many=True)
                         response_data.append({"score": hit['_score'], "eBooks": serializer.data})
@@ -80,5 +83,7 @@ class RelatedEBookAPI(APIView):
 
 class IndexAPIView(APIView):
     def get(self, request):
-        index_eBook()
+        fileId = request.GET.get('fileId')
+        index_one_ebook(fileId)
         return Response({"status": "success"}, status=status.HTTP_200_OK)
+    
