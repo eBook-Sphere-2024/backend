@@ -30,21 +30,52 @@ class CommentAPI(APIView):
     def post(self, request):
         serializer = CommentSerializer(data=request.data)
         if serializer.is_valid():
+            if 'reply_to' in serializer.validated_data:
+                parent_comment = Comment.objects.get(pk=serializer.validated_data['reply_to'].id)
+                if parent_comment.ebook != serializer.validated_data['ebook']:
+                    return Response({"error": "Reply must be on the same ebook"}, status=status.HTTP_400_BAD_REQUEST)
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request):
         data = request.data
-        obj = Comment.objects.get(id=data['id'])
-        serializer = CommentSerializer(obj, data=data, partial=True)
+        id = request.GET.get('id')
+        try:
+            obj = Comment.objects.get(id=id)
+        except Comment.DoesNotExist:
+            return Response({"status": "failed", "message": "Comment not found"}, status=status.HTTP_404_NOT_FOUND)
+        content = data.get('content')
+        likes = data.get('likes')
+        print(content, likes)
+        update_data = {}
+
+        if content is not None:
+            update_data['content'] = content
+        if likes is not None:
+            update_data['likes'] = likes
+        if update_data == {}:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        
+        serializer = CommentSerializer(obj, data=update_data, partial=True)
+
         if serializer.is_valid():
             serializer.save()
             return Response({"status": "success", "Comments": serializer.data}, status=status.HTTP_200_OK)
         return Response({"status": "failed", "Comments": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
     
     def delete(self, request):
-        comment = get_object_or_404(Comment, id=request.data.get('id'))
+        id = request.GET.get('id')
+        comment = get_object_or_404(Comment, id=id)
+        for reply in comment.replies.all():
+            self.delete_replies(reply)
+            reply.delete()
         comment.delete()
         return Response(status=status.HTTP_200_OK)
+    
+    def delete_replies(self, comment):
+        # Recursively delete all replies to the given comment
+        for reply in comment.replies.all():
+            self.delete_replies(reply)
+            reply.delete()
 

@@ -7,7 +7,7 @@ class Comment(models.Model):
     content = models.TextField()
     publish_date = models.DateField(auto_now_add=True)
     likes = models.IntegerField(default=0)
-    reply_to = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reply_to', null=True, blank=True)
+    reply_to = models.ForeignKey('self', on_delete=models.CASCADE, related_name='replies', null=True, blank=True)
 
     def __str__(self):
         return self.content
