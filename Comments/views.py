@@ -9,7 +9,11 @@ from User.serializers import RegisterSerializer
 
 class CommentAPI(APIView):
     def get(self, request):
-        comments = Comment.objects.all()
+        id = request.GET.get('id')
+        if(id):
+            comments = Comment.objects.filter(ebook=id)
+        else:
+            comments = Comment.objects.all()
         serialized_comments = []
         for comment in comments:
             # Retrieve associated eBook and user instances
@@ -25,7 +29,7 @@ class CommentAPI(APIView):
             serialized_comments.append(serialized_comment)
         
         # Return response without .data
-        return Response({"status": "success", "comments": serialized_comments}, status=status.HTTP_200_OK)
+        return Response(serialized_comments, status=status.HTTP_200_OK)
         
     def post(self, request):
         serializer = CommentSerializer(data=request.data)
