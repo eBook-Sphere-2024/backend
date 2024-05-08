@@ -98,10 +98,15 @@ class UserAPI(APIView):
 
 class User_Profile(APIView):
     def get(self, request):
-        users = UserProfile.objects.all()
-        serializer = UserProfileSerializer(users, many=True)
-        return Response({"status": "success", "users": serializer.data}, status=status.HTTP_200_OK)
-
+        user_id = request.GET.get('id')
+        if user_id:
+            try:
+                user = UserProfile.objects.get(user=user_id)
+            except UserProfile.DoesNotExist:
+                return Response({"status": "failed", "message": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
+            serializer = UserProfileSerializer(user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response({"status": "failed", "message": "User ID not provided"}, status=status.HTTP_400_BAD_REQUEST)
     def patch(self, request):
         user_id = request.data.get('id')
         try:
@@ -126,3 +131,5 @@ class User_Profile(APIView):
         user.save()
         
         return Response({'status': "success", "message": "profile deleted successfully"}, status=status.HTTP_200_OK)
+    
+

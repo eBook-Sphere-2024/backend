@@ -6,14 +6,15 @@ from rest_framework import status
 from Comments.serializers import CommentSerializer
 from eBook.serializers import eBookSerializer
 from User.serializers import RegisterSerializer
+from rest_framework.decorators import api_view
 
 class CommentAPI(APIView):
     def get(self, request):
         id = request.GET.get('id')
-        if(id):
+        if id:
             comments = Comment.objects.filter(ebook=id)
         else:
-            comments = Comment.objects.all()
+            comments = Comment.objects.filter(reply_to__isnull=True)  # Corrected typo here
         serialized_comments = []
         for comment in comments:
             # Retrieve associated eBook and user instances
@@ -24,10 +25,10 @@ class CommentAPI(APIView):
             serialized_comment = CommentSerializer(comment).data
             serialized_comment['ebook'] = eBookSerializer(ebook_instance).data
             serialized_comment['user'] = RegisterSerializer(user_instance).data
-            
+                
             # Append serialized comment to the list
             serialized_comments.append(serialized_comment)
-        
+            
         # Return response without .data
         return Response(serialized_comments, status=status.HTTP_200_OK)
         
@@ -82,4 +83,20 @@ class CommentAPI(APIView):
         for reply in comment.replies.all():
             self.delete_replies(reply)
             reply.delete()
+
+
+@api_view(['GET'])
+def get_all_replies(request):
+    id = request.GET.get("id")
+    ebookId = request.GET.get("ebookId")
+    comments = Comment.objects.filter(reply_to__id=id, ebook=ebookId)
+    serialized_comments = []
+    for comment in comments:
+        ebook_instance = comment.ebook
+        user_instance = comment.user
+        serialized_comment = CommentSerializer(comment).data
+        serialized_comment['ebook'] = eBookSerializer(ebook_instance).data
+        serialized_comment['user'] = RegisterSerializer(user_instance).data
+        serialized_comments.append(serialized_comment)
+    return Response(serialized_comments , status=status.HTTP_200_OK)
 
