@@ -65,17 +65,22 @@ class RelatedEBookAPI(APIView):
         if query:
             try:
                 results = search_eBook(query)
-                response_data = []
+                eBooks_data = []
+
                 for hit in results:
                     # Filter eBook instances by filename
-
-                    #will be changed to content=hit['_source']['fileId']
                     eBooks = eBook.objects.filter(title=hit['_source']['filename'][:-len('.pdf')])
 
                     if eBooks:  # Check if any eBooks are found
                         serializer = eBookSerializer(eBooks, many=True)
-                        response_data.append({"score": hit['_score'], "eBooks": serializer.data})
-                return Response({"status": "success", "results": response_data}, status=status.HTTP_200_OK)
+                        serialized_data_with_score = [{"score": hit['_score'], "eBook": eBook_data} for eBook_data in serializer.data]
+                        eBooks_data.extend(serialized_data_with_score)
+
+                sorted_eBooks = sorted(eBooks_data, key=lambda x: x['score'], reverse=True)
+                sorted_eBooks_without_score = [eBook_data['eBook'] for eBook_data in sorted_eBooks]
+
+                return Response(sorted_eBooks_without_score, status=status.HTTP_200_OK)
+
             except RuntimeError as e:
                 return Response({"status": "failed", "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         else:
