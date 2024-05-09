@@ -24,6 +24,7 @@ class searchAPI(APIView):
             results = eBook.objects.filter(
                 Q(title__icontains=query_lower) | Q(author__username__icontains=query_lower)
             )
+            
 
             # Filter results based on the criteria
             filtered_results = []
