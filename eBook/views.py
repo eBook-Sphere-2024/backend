@@ -1,3 +1,4 @@
+import os
 from django.shortcuts import get_object_or_404
 from .models import eBook, Category
 from .command import *
@@ -6,6 +7,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
 from eBook.serializers import eBookSerializer 
+from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
+import io
+from googleapiclient.http import MediaIoBaseDownload
 
 class EbookAPI(APIView):
 
@@ -61,3 +66,31 @@ def filter_books_by_category(request):
     except Category.DoesNotExist:
         return Response({"error": "Category not found"}, status=status.HTTP_404_NOT_FOUND)
     
+@api_view(['POST'])
+def download_file_from_google_drive(request):
+    file_id = request.data.get('fileId')
+    local_path = request.data.get('localPath')
+    if not file_id or not local_path:
+        return Response({"error": "Both fileId and localPath are required"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Define the path to your service account JSON key file
+    service_account_file = 'eBook/credential.json'
+    
+    # Authenticate the application with Google Drive API using service account credentials
+    creds = Credentials.from_service_account_file(service_account_file)
+    service = build('drive', 'v3', credentials=creds)
+    
+    try:
+        # Download the PDF file
+        request = service.files().get_media(fileId=file_id)
+        fh = io.FileIO(local_path, mode='wb')
+        downloader = MediaIoBaseDownload(fh, request)
+        done = False
+        while done is False:
+            prograss, done = downloader.next_chunk()
+            print("Download %d%%." % int(prograss.progress() * 100))
+        print("Download Complete!")
+        fh.close()  # Close the file handle after download is complete
+        return Response({"message": "Download successful"}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
