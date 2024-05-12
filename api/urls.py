@@ -1,7 +1,7 @@
 from django.urls import path
 from Comments.views import CommentAPI, get_all_replies
 from eBook.views import *
-from User.views import LoginAPI, UserAPI, User_Profile
+from User.views import *
 from Template.views import TemplateAPI
 from search.views import searchAPI , RelatedEBookAPI , IndexAPIView
 urlpatterns = [
@@ -20,4 +20,5 @@ urlpatterns = [
     path('replies/',get_all_replies),
     path('autherBooks/',AuthorBooksAPI.as_view()),
     path('download/',download_file_from_google_drive),
+    path('userByToken/', get_User_by_Token),
 ]
