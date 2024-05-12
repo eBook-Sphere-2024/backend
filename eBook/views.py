@@ -71,29 +71,21 @@ def filter_books_by_category(request):
 @api_view(['POST'])
 def download_file_from_google_drive(request):
     file_id = request.data.get('fileId')
-    local_path = request.data.get('localPath')
-    if not file_id or not local_path:
-        return Response({"error": "Both fileId and localPath are required"}, status=status.HTTP_400_BAD_REQUEST)
-    
+    if not file_id:
+        return Response({"error": "fileId is required"}, status=status.HTTP_400_BAD_REQUEST)
     # Define the path to your service account JSON key file
     service_account_file = 'eBook/credential.json'
-    
     # Authenticate the application with Google Drive API using service account credentials
     creds = Credentials.from_service_account_file(service_account_file)
     service = build('drive', 'v3', credentials=creds)
-    
     try:
-        # Download the PDF file
-        request = service.files().get_media(fileId=file_id)
-        fh = io.FileIO(local_path, mode='wb')
-        downloader = MediaIoBaseDownload(fh, request)
-        done = False
-        while done is False:
-            prograss, done = downloader.next_chunk()
-            print("Download %d%%." % int(prograss.progress() * 100))
-        print("Download Complete!")
-        fh.close()  # Close the file handle after download is complete
-        return Response({"message": "Download successful"}, status=status.HTTP_200_OK)
+        # Get the file metadata
+        file_metadata = service.files().get(fileId=file_id).execute()
+        # Get the file name
+        file_name = file_metadata['name']
+        # Construct the download link
+        download_link = f"https://drive.google.com/uc?id={file_id}&export=download"   
+        return Response(download_link)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 class AuthorBooksAPI(APIView):
@@ -108,5 +100,4 @@ class AuthorBooksAPI(APIView):
             except User.DoesNotExist:
                 return Response({"error": "Author not found"}, status=status.HTTP_404_NOT_FOUND)
         else:
-
             return Response({"error": "Author ID is required"}, status=status.HTTP_400_BAD_REQUEST)
