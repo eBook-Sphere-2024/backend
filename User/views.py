@@ -3,6 +3,7 @@ from rest_framework.views import APIView
 from rest_framework import status
 from .serializers import LoginSerializer, RegisterSerializer , UserProfileSerializer
 from django.contrib.auth import authenticate
+from rest_framework.decorators import api_view
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
 from .models import UserProfile
@@ -29,13 +30,9 @@ class LoginAPI(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         token, _ = Token.objects.get_or_create(user=user)
-        return Response({
-            'status': True,
-            'message': "Login successful",
-            'token': str(token),
-            'user_id': user.id ,
-            'date': str(user.date_joined)
-        }, status=status.HTTP_200_OK)
+        return Response(
+            str(token)
+        , status=status.HTTP_200_OK)
 
 
 class UserAPI(APIView):
@@ -58,16 +55,28 @@ class UserAPI(APIView):
                 profile_serializer = UserProfileSerializer(data=profile_data)
                 if profile_serializer.is_valid():
                     profile_serializer.save()
-                    return Response({"status": "success", "user": user_serializer.data}, status=status.HTTP_201_CREATED)
+                    username = user_serializer.validated_data.get('username', None)
+                    password = user_serializer.validated_data.get('password', None)
+
+                    user = authenticate(username=username, password=password)
+
+                    if not user:
+                        return Response({
+                            'status': False,
+                            'message': "Username or password is incorrect"
+                        }, status=status.HTTP_400_BAD_REQUEST)
+
+                    token, _ = Token.objects.get_or_create(user=user)
+                    return Response(str(token),status=status.HTTP_201_CREATED)
                 else:
                     # If there's an error in creating the UserProfile instance, delete the created user
                     user_instance.delete()
-                    return Response({"status": "failed", "errors": profile_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response(profile_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             except Exception as e:
                 user_instance.delete()
-                return Response({"status": "failed", "errors": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
         else:
-            return Response({"status": "failed", "errors": user_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
     def patch(self, request):
         data = request.data
@@ -132,4 +141,20 @@ class User_Profile(APIView):
         
         return Response({'status': "success", "message": "profile deleted successfully"}, status=status.HTTP_200_OK)
     
-
+@api_view(['GET'])
+def get_User_by_Token(request):
+    authorization_header = request.META.get('HTTP_AUTHORIZATION')
+    
+    if authorization_header is not None:
+        try:
+            # Extract the token from the authorization header
+            _, token_value = authorization_header.split(' ')
+            token_value = token_value.replace('"', '')
+            token = Token.objects.get(key=token_value)
+            user = User.objects.get(id=token.user_id)
+            serializer = RegisterSerializer(user)
+            return Response(serializer.data)
+        except (ValueError, Token.DoesNotExist):
+            return Response({"error": "Invalid token"}, status=400)
+    else:
+        return Response({"error": "Authorization header missing"}, status=400)
