@@ -94,3 +94,17 @@ def download_file_from_google_drive(request):
         return Response({"message": "Download successful"}, status=status.HTTP_200_OK)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+class AuthorBooksAPI(APIView):
+
+    def get(self, request):
+        author_id = request.GET.get('id')
+        if author_id:
+            try:
+                books = eBook.objects.filter(author=author_id)
+                serializer = eBookSerializer(books, many=True)
+                return Response(serializer.data)
+            except User.DoesNotExist:
+                return Response({"error": "Author not found"}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            return Response({"error": "Author ID is required"}, status=status.HTTP_400_BAD_REQUEST)
