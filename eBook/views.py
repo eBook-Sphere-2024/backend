@@ -1,4 +1,6 @@
 from django.shortcuts import get_object_or_404
+from django.contrib.auth.models import User
+
 from .models import eBook, Category
 from .command import *
 from rest_framework.decorators import api_view
@@ -60,4 +62,17 @@ def filter_books_by_category(request):
         return Response(serializer.data, status=status.HTTP_200_OK)
     except Category.DoesNotExist:
         return Response({"error": "Category not found"}, status=status.HTTP_404_NOT_FOUND)
-    
+
+class AuthorBooksAPI(APIView):
+
+    def get(self, request):
+        author_id = request.GET.get('id')
+        if author_id:
+            try:
+                books = eBook.objects.filter(author=author_id)
+                serializer = eBookSerializer(books, many=True)
+                return Response(serializer.data)
+            except User.DoesNotExist:
+                return Response({"error": "Author not found"}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            return Response({"error": "Author ID is required"}, status=status.HTTP_400_BAD_REQUEST)
