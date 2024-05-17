@@ -1,6 +1,7 @@
 from django.shortcuts import get_object_or_404, render
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from django.db.models import Q
 from Comments.models import Comment
 from rest_framework import status
 from Comments.serializers import CommentSerializer
@@ -12,9 +13,9 @@ class CommentAPI(APIView):
     def get(self, request):
         id = request.GET.get('id')
         if id:
-            comments = Comment.objects.filter(ebook=id)
+            comments = Comment.objects.filter(Q(ebook=id) & Q(reply_to__isnull=True))
         else:
-            comments = Comment.objects.filter(reply_to__isnull=True)  # Corrected typo here
+            comments = Comment.objects.all()  
         serialized_comments = []
         for comment in comments:
             # Retrieve associated eBook and user instances
@@ -52,7 +53,6 @@ class CommentAPI(APIView):
             return Response({"status": "failed", "message": "Comment not found"}, status=status.HTTP_404_NOT_FOUND)
         content = data.get('content')
         likes = data.get('likes')
-        print(content, likes)
         update_data = {}
 
         if content is not None:
