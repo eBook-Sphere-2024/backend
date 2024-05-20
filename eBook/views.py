@@ -2,17 +2,16 @@ import os
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
 
-from .models import eBook, Category
+from .models import eBook, Category, Rating
 from .command import *
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
-from eBook.serializers import eBookSerializer 
+from eBook.serializers import eBookSerializer , RatingSerializer
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
-import io
-from googleapiclient.http import MediaIoBaseDownload
+from django.db.models import Avg
 
 class EbookAPI(APIView):
 
@@ -101,3 +100,53 @@ class AuthorBooksAPI(APIView):
                 return Response({"error": "Author not found"}, status=status.HTTP_404_NOT_FOUND)
         else:
             return Response({"error": "Author ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+def get_rating_by_ebook(request):
+    ebook_id = request.GET.get('id')
+    if not ebook_id:
+        return Response({"error": "ebook_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    ebook = get_object_or_404(eBook, id=ebook_id)
+    ratings = Rating.objects.filter(ebook=ebook)
+    serializer = RatingSerializer(ratings, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+
+class RatingBooksAPI(APIView):
+    # get rating by ebookid
+    def get(self, request):
+        ebook_id = request.GET.get('id')
+        if not ebook_id:
+            return Response({"error": "ebook_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        ebook = get_object_or_404(eBook, id=ebook_id)
+        ratings = Rating.objects.filter(ebook=ebook)
+        
+        # Calculate the average rating value
+        average_rating = ratings.aggregate(Avg('rate'))['rate__avg']
+        
+        return Response(average_rating, status=status.HTTP_200_OK)
+    
+    def put(self, request):
+        ebook_id = request.data.get('ebook')
+        user_id = request.data.get('user')
+        rating_value = request.data.get('rate')
+        
+        if not (ebook_id and user_id and rating_value):
+            return Response({"error": "ebook_id, user_id, and rate are required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        ebook = get_object_or_404(eBook, id=ebook_id)
+        user = get_object_or_404(User, id=user_id)
+        
+        # Check if the rating already exists for the given user and ebook
+        rating, created = Rating.objects.get_or_create(ebook=ebook, user=user)
+        
+        # Update the rating value
+        rating.rate = rating_value
+        rating.save()
+        
+        return Response({"message": "Rating added successfully"}, status=status.HTTP_200_OK)
+    
+

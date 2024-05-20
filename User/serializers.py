@@ -1,6 +1,7 @@
+from requests import Response
 from rest_framework import serializers
 from User.models import UserProfile
-import re
+from rest_framework import status
 from django.contrib.auth.models import User
 
 class RegisterSerializer(serializers.Serializer):
@@ -12,9 +13,9 @@ class RegisterSerializer(serializers.Serializer):
     password = serializers.CharField()
 
     def validate(self, data):
-        if User.objects.filter(username=data.get('username')).exists():
+        if 'username' in data and User.objects.filter(username=data['username']).exclude(id=self.instance.id).exists():
             raise serializers.ValidationError('Username already exists')
-        if User.objects.filter(email=data.get('email')).exists():
+        if 'email' in data and User.objects.filter(email=data['email']).exclude(id=self.instance.id).exists():
             raise serializers.ValidationError('Email already exists')
         return data
     
@@ -28,6 +29,7 @@ class RegisterSerializer(serializers.Serializer):
         user.set_password(validated_data['password'])
         user.save()
         return user
+    
     def update(self, instance, validated_data):
         instance.username = validated_data.get('username', instance.username)
         instance.email = validated_data.get('email', instance.email)

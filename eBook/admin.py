@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import eBook, Category
+from .models import eBook, Category, Rating
 
 class eBookAdmin(admin.ModelAdmin):
     list_display = ('title', 'author', 'publication_date')
@@ -14,3 +14,4 @@ class CategoryAdmin(admin.ModelAdmin):
 # Register your models and their custom admin classes
 admin.site.register(eBook, eBookAdmin)
 admin.site.register(Category, CategoryAdmin)
+admin.site.register(Rating)

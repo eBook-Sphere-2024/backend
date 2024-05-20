@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404
 from User.serializers import RegisterSerializer
 from Template.serializers import TemplateSerializer
 from .models import eBook , Category
-from eBook.serializers import eBookSerializer , CategorySerializer
+from eBook.serializers import RatingSerializer, eBookSerializer , CategorySerializer
 from django.core.exceptions import ObjectDoesNotExist
 
 # Base Command class
@@ -20,9 +20,24 @@ class CreateEbookCommand(Command):
     def execute(self):
         serializer = eBookSerializer(data=self.data)
         if serializer.is_valid():
-            serializer.save()
-            return serializer.data
+            ebook_instance = serializer.save()  # Save the eBook instance
+            
+            # Create initial rating for the eBook
+            rate_data = {
+                'ebook': ebook_instance.id,
+                'user': self.data.get('author'),
+                'rate': 0
+            }
+            rating_serializer = RatingSerializer(data=rate_data)
+            if rating_serializer.is_valid():
+                rating_serializer.save()
+                return serializer.data
+            else:
+                # If creating the initial rating fails, delete the eBook instance
+                ebook_instance.delete()
+                return rating_serializer.errors
         return serializer.errors
+
 
 class EditEbookCommand(Command):
     def __init__(self, ebook_id, data):

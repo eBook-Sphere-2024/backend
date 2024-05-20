@@ -79,18 +79,24 @@ class UserAPI(APIView):
             return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
     def patch(self, request):
-        data = request.data
-        user_id = data.get('id')
+        data = request.data.copy()  # Make a copy of the data to avoid modifying the original request data
+        user_id = data.pop('id', None)  # Remove 'id' from the data and get its value
+    
+        if user_id is None:
+            return Response({"status": "failed", "message": "User ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+
         try:
             user = User.objects.get(id=user_id)
         except User.DoesNotExist:
             return Response({"status": "failed", "message": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
         
+        if User.objects.filter(username=data['username']).exclude(id=user_id).exists():
+            return Response({"status": "failed", "message": "Username already exists"}, status=status.HTTP_400_BAD_REQUEST)
         serializer = RegisterSerializer(user, data=data, partial=True)
-
+        
         if serializer.is_valid():
             serializer.save()
-            return Response({"status": "success", "user": serializer.data}, status=status.HTTP_200_OK)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         return Response({"status": "failed", "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
     
     def delete(self, request):
