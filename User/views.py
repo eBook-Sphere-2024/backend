@@ -1,7 +1,7 @@
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
-from .serializers import LoginSerializer, RegisterSerializer , UserProfileSerializer
+from .serializers import ChangePasswordSerializer, LoginSerializer, RegisterSerializer , UserProfileSerializer
 from django.contrib.auth import authenticate
 from rest_framework.decorators import api_view
 from rest_framework.authtoken.models import Token
@@ -164,3 +164,12 @@ def get_User_by_Token(request):
             return Response({"error": "Invalid token"}, status=400)
     else:
         return Response({"error": "Authorization header missing"}, status=400)
+
+class ChangePasswordAPI(APIView):
+    def patch(self, request):
+        data = request.data
+        serializer = ChangePasswordSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'status': 'success', 'message': 'Password changed successfully'}, status=status.HTTP_200_OK)
+        return Response({'status': 'failed', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
