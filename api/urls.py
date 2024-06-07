@@ -21,5 +21,6 @@ urlpatterns = [
     path('autherBooks/',AuthorBooksAPI.as_view()),
     path('download/',download_file_from_google_drive),
     path('userByToken/', get_User_by_Token),
-    path('rate/',RatingBooksAPI.as_view())
+    path('rate/',RatingBooksAPI.as_view()),
+    path('changePassword/',ChangePasswordAPI.as_view())
 ]

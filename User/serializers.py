@@ -45,6 +45,25 @@ class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField()
 
+class ChangePasswordSerializer(serializers.Serializer):
+    username = serializers.CharField(required=True)
+    old_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True)
+
+    def validate(self, data):
+        user = User.objects.filter(username=data['username']).first()
+        if user is None:
+            raise serializers.ValidationError('User does not exist')
+        if not user.check_password(data['old_password']):
+            raise serializers.ValidationError('Old password is incorrect')
+        return data
+
+    def save(self, **kwargs):
+        user = User.objects.get(username=self.validated_data['username'])
+        user.set_password(self.validated_data['new_password'])
+        user.save()
+        return user
+    
 
 class UserProfileSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
@@ -53,3 +72,5 @@ class UserProfileSerializer(serializers.ModelSerializer):
         model = UserProfile
         fields = '__all__'
         depth = 1
+
+
