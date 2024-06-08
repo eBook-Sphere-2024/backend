@@ -13,7 +13,16 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 from django.http import JsonResponse
+from django.contrib.sites.shortcuts import get_current_site
 from io import BytesIO
+from .serializers import PasswordResetRequestSerializer, SetNewPasswordSerializer
+from django.urls import reverse
+from django.core.mail import send_mail
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.contrib.auth.tokens import default_token_generator
+from django.template.loader import render_to_string
+
 
 class LoginAPI(APIView):
     def post(self, request):
@@ -190,7 +199,30 @@ class ChangePasswordAPI(APIView):
             return Response({'status': 'success', 'message': 'Password changed successfully'}, status=status.HTTP_200_OK)
         return Response({'status': 'failed', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
     
+class PasswordResetRequestView(APIView):
+    def post(self, request, *args, **kwargs):
+        email = request.data.get('email')
+        user = User.objects.filter(email=email).first()
+        if user:
+            uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+            reset_url = f"http://localhost:4200/resetPassword/{uidb64}/{token}"
+            subject = 'Password Reset Requested'
+            message = render_to_string('User/password_reset_email.txt', {
+                'user': user,
+                'reset_url': reset_url
+            })
+            send_mail(subject, message, 'ebooksphere210@gmail.com', [user.email])
+        return Response({"message": "Password reset email sent."}, status=status.HTTP_200_OK)
 
+class PasswordResetConfirmView(APIView):
+    def post(self, request, uidb64, token):
+        serializer = SetNewPasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Password has been reset."}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
 def upload_image(file, user_id):
     # Read the file data
     image_data = file.read()
