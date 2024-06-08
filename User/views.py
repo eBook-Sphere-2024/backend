@@ -1,3 +1,4 @@
+from django.http import JsonResponse
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
@@ -7,6 +8,12 @@ from rest_framework.decorators import api_view
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
 from .models import UserProfile
+from rest_framework.parsers import MultiPartParser
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
+from django.http import JsonResponse
+from io import BytesIO
 
 class LoginAPI(APIView):
     def post(self, request):
@@ -112,6 +119,7 @@ class UserAPI(APIView):
 
 
 class User_Profile(APIView):
+    parser_classes = [MultiPartParser]
     def get(self, request):
         user_id = request.GET.get('id')
         if user_id:
@@ -122,18 +130,26 @@ class User_Profile(APIView):
             serializer = UserProfileSerializer(user)
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response({"status": "failed", "message": "User ID not provided"}, status=status.HTTP_400_BAD_REQUEST)
+    
     def patch(self, request):
-        user_id = request.data.get('id')
+        user_id = request.data.get('user')
+        image_profile = request.FILES.get('profile_image')
+        request.data["profile_image"] = "yu12"
         try:
-            user = UserProfile.objects.get(id=user_id)
+            user = UserProfile.objects.get(user=user_id)
         except UserProfile.DoesNotExist:
             return Response({"status": "failed", "message": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
         
+        response = upload_image(image_profile,user_id)  # Call upload_image function
+
+        request.data['profile_image'] = "https://drive.google.com/thumbnail?id="+response
+        # If no error, continue with serializer
         serializer = UserProfileSerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response({"status": "success", "user": serializer.data}, status=status.HTTP_200_OK)
         return Response({"status": "failed", "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+    
     def delete(self, request):
         user_id = request.data.get('id')
         try:
@@ -173,3 +189,46 @@ class ChangePasswordAPI(APIView):
             serializer.save()
             return Response({'status': 'success', 'message': 'Password changed successfully'}, status=status.HTTP_200_OK)
         return Response({'status': 'failed', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+    
+
+def upload_image(file, user_id):
+    # Read the file data
+    image_data = file.read()
+
+    # Load credentials
+    credentials_path = 'User/credential.json'
+    credentials = service_account.Credentials.from_service_account_file(credentials_path, scopes=['https://www.googleapis.com/auth/drive.file'])
+
+    # Build the service
+    service = build('drive', 'v3', credentials=credentials)
+
+    # Specify the folder ID where you want to upload the image
+    folder_id = '1vSQghTZFfB9rMA4nWFmKTwW6g3n-e58T'
+
+    # Check if the file already exists
+    existing_file = get_existing_file(service, folder_id, user_id)
+    if existing_file:
+        file_id = existing_file.get('id')
+        # Update the file content
+        media = MediaIoBaseUpload(BytesIO(image_data), mimetype='image/jpeg')
+        updated_file = service.files().update(fileId=file_id, media_body=media).execute()
+        return updated_file.get("id")
+    else:
+        # Upload file to Google Drive within the specified folder
+        file_metadata = {
+            'name': user_id,
+            'parents': [folder_id]  # Specify the folder ID as the parent
+        }
+        media = MediaIoBaseUpload(BytesIO(image_data), mimetype='image/jpeg')
+        uploaded_file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+        return uploaded_file.get("id")
+
+def get_existing_file(service, folder_id, user_id):
+    # Search for the file by name within the specified folder
+    query = f"name='{user_id}' and '{folder_id}' in parents and trashed=false"
+    response = service.files().list(q=query, fields='files(id)').execute()
+    files = response.get('files', [])
+    if files:
+        return files[0]  # Return the first matching file
+    else:
+        return None  # No existing file found
