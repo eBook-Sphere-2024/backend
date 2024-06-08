@@ -13,9 +13,10 @@ class RegisterSerializer(serializers.Serializer):
     password = serializers.CharField()
 
     def validate(self, data):
-        if 'username' in data and User.objects.filter(username=data['username']).exclude(id=self.instance.id).exists():
+        instance_id = self.instance.id if self.instance else None
+        if 'username' in data and User.objects.filter(username=data['username']).exclude(id=instance_id).exists():
             raise serializers.ValidationError('Username already exists')
-        if 'email' in data and User.objects.filter(email=data['email']).exclude(id=self.instance.id).exists():
+        if 'email' in data and User.objects.filter(email=data['email']).exclude(id=instance_id).exists():
             raise serializers.ValidationError('Email already exists')
         return data
     
