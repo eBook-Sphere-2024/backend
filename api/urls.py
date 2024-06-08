@@ -22,5 +22,7 @@ urlpatterns = [
     path('download/',download_file_from_google_drive),
     path('userByToken/', get_User_by_Token),
     path('rate/',RatingBooksAPI.as_view()),
-    path('changePassword/',ChangePasswordAPI.as_view())
+    path('changePassword/',ChangePasswordAPI.as_view()),
+    path('password-reset/', PasswordResetRequestView.as_view(), name='password-reset'),
+    path('password-reset-confirm/<uidb64>/<token>/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
 ]
