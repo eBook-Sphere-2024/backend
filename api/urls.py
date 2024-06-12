@@ -2,7 +2,7 @@ from django.urls import path
 from Comments.views import CommentAPI, get_all_replies
 from eBook.views import *
 from User.views import *
-from Template.views import TemplateAPI
+from Template.views import *
 from search.views import searchAPI , RelatedEBookAPI , IndexAPIView
 urlpatterns = [
     path('users/', UserAPI.as_view()),
@@ -15,6 +15,7 @@ urlpatterns = [
     path('index/',IndexAPIView.as_view()),
     path('comments/',CommentAPI.as_view()),
     path('template/',TemplateAPI.as_view()),
+    path('getTemplateById/',getTemplateById.as_view()),
     path('profile/',User_Profile.as_view()),
     path('autherBooks/',AuthorBooksAPI.as_view()),
     path('replies/',get_all_replies),

@@ -17,7 +17,6 @@ class eBook(models.Model):
     content = models.CharField(max_length=2000)
     cover = models.CharField(max_length=2000)
     categories = models.ManyToManyField(Category, related_name='bookCategory' )
-    template = models.ForeignKey(Template, on_delete=models.CASCADE,related_name='template')
 
     def __str__(self):
         return self.title

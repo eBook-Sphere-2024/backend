@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from django.shortcuts import get_object_or_404
 from User.serializers import RegisterSerializer
-from Template.serializers import TemplateSerializer
 from .models import eBook , Category
 from eBook.serializers import RatingSerializer, eBookSerializer , CategorySerializer
 from django.core.exceptions import ObjectDoesNotExist
@@ -69,12 +68,10 @@ class ShowBooksCommand(Command):
         serialized_ebooks = []
         for ebook in ebooks:
             author_instance = ebook.author
-            template_instance = ebook.template
             categories = ebook.categories.all()
             serialized_ebook = eBookSerializer(ebook).data
             serialized_ebook['categories'] = CategorySerializer(categories, many=True).data
             serialized_ebook['author'] = RegisterSerializer(author_instance).data
-            serialized_ebook['template'] = TemplateSerializer(template_instance).data
             serialized_ebooks.append(serialized_ebook)
         return serialized_ebooks
     
@@ -89,7 +86,6 @@ class ShowEbookDetailsCommand(Command):
         serialized_data = serializer.data
         serialized_data['categories'] = CategorySerializer(categories, many=True).data
         serialized_data['author'] = RegisterSerializer(ebook.author).data
-        serialized_data['template'] = TemplateSerializer(ebook.template).data
         return serialized_data
     
 class FilterBooksByCategoryCommand(Command):
