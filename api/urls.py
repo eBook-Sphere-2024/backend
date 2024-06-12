@@ -3,6 +3,7 @@ from Comments.views import CommentAPI, get_all_replies
 from eBook.views import *
 from User.views import *
 from Template.views import *
+from FavoriteBooks.views import *
 from search.views import searchAPI , RelatedEBookAPI , IndexAPIView
 urlpatterns = [
     path('users/', UserAPI.as_view()),
@@ -26,4 +27,5 @@ urlpatterns = [
     path('changePassword/',ChangePasswordAPI.as_view()),
     path('password-reset/', PasswordResetRequestView.as_view(), name='password-reset'),
     path('password-reset-confirm/<uidb64>/<token>/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
+    path('FavoriteBooks/',FavoriteBooksAPI.as_view()),
 ]

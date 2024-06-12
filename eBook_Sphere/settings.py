@@ -44,7 +44,8 @@ INSTALLED_APPS = [
     'User',
     'rest_framework.authtoken',
     'rest_framework',
-    'Comments'
+    'Comments',
+    'FavoriteBooks',
 ]
 
 MIDDLEWARE = [
