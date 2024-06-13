@@ -25,7 +25,7 @@ class searchAPI(APIView):
                 Q(title__icontains=query_lower) | Q(author__username__icontains=query_lower)
             )
             
-
+            results = results.filter(is_reviewed=True)
             # Filter results based on the criteria
             filtered_results = []
             for ebook in results:
@@ -70,6 +70,7 @@ class RelatedEBookAPI(APIView):
 
                 for hit in results:
                     # Filter eBook instances by filename
+                    
                     eBooks = eBook.objects.filter(title=hit['_source']['filename'][:-len('.pdf')])
 
                     if eBooks:  # Check if any eBooks are found

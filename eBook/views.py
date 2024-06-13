@@ -12,6 +12,8 @@ from eBook.serializers import eBookSerializer , RatingSerializer
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from django.db.models import Avg
+from eBook.utility import *
+
 
 class EbookAPI(APIView):
 
@@ -24,6 +26,8 @@ class EbookAPI(APIView):
         else:
             command = ShowEbookDetailsCommand(ebook_id)
             ebook_data = command.execute()
+            if(ebook_data is None):
+                return Response(status=status.HTTP_404_NOT_FOUND)
             return Response(ebook_data, status=status.HTTP_200_OK)
     
     def post(self, request):
@@ -62,6 +66,7 @@ def filter_books_by_category(request):
         category = Category.objects.get(pk=category_id)
         command = FilterBooksByCategoryCommand(category_id)
         ebooks_data = command.execute()
+        
         serializer = eBookSerializer(ebooks_data, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     except Category.DoesNotExist:
@@ -87,6 +92,7 @@ def download_file_from_google_drive(request):
         return Response(download_link)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
 class AuthorBooksAPI(APIView):
 
     def get(self, request):
@@ -149,4 +155,33 @@ class RatingBooksAPI(APIView):
         
         return Response({"message": "Rating added successfully"}, status=status.HTTP_200_OK)
     
+
+@api_view(['POST'])
+def publish(request):
+    # Extract data from request
+    pdf_file = request.FILES.get('pdfFile')
+    author_id = request.data.get('authorId')  
+    ebook_title = request.data.get('ebookTitle')  
+    description = request.data.get('description')
+    selected_categories = request.data.getlist('categories') 
+    user = User.objects.get(id=author_id)
+    folderId = '1SMPcRVyp1y36Tqxyxgt0wD5zItzzOKoC'
+
+    fileId = uploadEbookForReview(pdf_file,folderId,ebook_title)
+
+    new_ebook = eBook.objects.create(
+        title=ebook_title,
+        author=user,
+        description=description,
+        content= fileId,
+        cover = 'assets/ebookCover/template1.png',
+        is_reviewed=False  # Initially set to False, indicating it needs review
+    )
+    # Add categories to eBook
+    categories_objs = Category.objects.filter(name__in=selected_categories)
+    new_ebook.categories.set(categories_objs)
+    new_ebook.save()
+
+    # Example response
+    return Response({'message': 'PDF document received and processed successfully.'})
 

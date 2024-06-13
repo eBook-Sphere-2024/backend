@@ -5,6 +5,8 @@ from .models import eBook , Category
 from eBook.serializers import RatingSerializer, eBookSerializer , CategorySerializer
 from django.core.exceptions import ObjectDoesNotExist
 
+from eBook.utility import *
+
 # Base Command class
 class Command(ABC):
     @abstractmethod
@@ -48,7 +50,24 @@ class EditEbookCommand(Command):
             ebook = eBook.objects.get(id=self.ebook_id)
             serializer = eBookSerializer(ebook, data=self.data, partial=True)
             if serializer.is_valid():
-                serializer.save()
+                if serializer.validated_data.get('is_reviewed', True) and not ebook.is_reviewed:
+                    try:
+                        folderIdToMoveTo = '17iMoJjzjuOvF0giYCGZjfLZuoD5hp5NI'
+                        fileId = move_file_in_google_drive(ebook.content ,folderIdToMoveTo)
+                        ebook.content = fileId
+                        ebook.is_reviewed = False 
+                        serializer.save()
+                        #add indexing
+                        # utility.send_mail_to_user(ebook) Accepted
+                    except:
+                        return False,"Error in moving file", serializer.errors
+                elif serializer.validated_data.get('is_reviewed', True) and ebook.is_reviewed:
+                    serializer.save()
+                else:
+                    serializer.save()
+                    #remove from drive and from ebooks table
+                    # utility.send_mail_to_user(ebook) Rejected
+
                 return True,"Success", serializer.data
             else:
                 return False,"Error", serializer.errors
@@ -64,7 +83,7 @@ class DeleteEbookCommand(Command):
 
 class ShowBooksCommand(Command):
     def execute(self):
-        ebooks = eBook.objects.all()
+        ebooks = eBook.objects.filter(is_reviewed=True)
         serialized_ebooks = []
         for ebook in ebooks:
             author_instance = ebook.author
@@ -81,6 +100,8 @@ class ShowEbookDetailsCommand(Command):
 
     def execute(self):
         ebook = get_object_or_404(eBook, id=self.ebook_id)
+        if(ebook.is_reviewed == False):
+            return None
         categories = ebook.categories.all()
         serializer = eBookSerializer(ebook)
         serialized_data = serializer.data
@@ -93,7 +114,8 @@ class FilterBooksByCategoryCommand(Command):
         self.category_id = category_id
 
     def execute(self):
-        return eBook.objects.filter(categories__id=self.category_id)
+        eBooks=eBook.objects.filter(is_reviewed=True)
+        return eBooks.filter(categories__id=self.category_id ) 
 
     
 class ShowCategoriesCommand(Command):
