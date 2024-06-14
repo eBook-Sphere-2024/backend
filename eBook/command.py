@@ -54,8 +54,7 @@ class EditEbookCommand(Command):
                     try:
                         folderIdToMoveTo = '17iMoJjzjuOvF0giYCGZjfLZuoD5hp5NI'
                         fileId = move_file_in_google_drive(ebook.content ,folderIdToMoveTo)
-                        ebook.content = fileId
-                        ebook.is_reviewed = False 
+                        ebook.content = fileId 
                         serializer.save()
                         #add indexing
                         # utility.send_mail_to_user(ebook) Accepted
