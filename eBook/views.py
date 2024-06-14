@@ -158,30 +158,37 @@ class RatingBooksAPI(APIView):
 
 @api_view(['POST'])
 def publish(request):
-    # Extract data from request
-    pdf_file = request.FILES.get('pdfFile')
-    author_id = request.data.get('authorId')  
-    ebook_title = request.data.get('ebookTitle')  
-    description = request.data.get('description')
-    selected_categories = request.data.getlist('categories') 
-    user = User.objects.get(id=author_id)
-    folderId = '1SMPcRVyp1y36Tqxyxgt0wD5zItzzOKoC'
+    try:
+        # Extract data from request
+        pdf_file = request.FILES.get('pdfFile')
+        author_id = request.data.get('authorId')  
+        ebook_title = request.data.get('ebookTitle')  
+        description = request.data.get('description')
+        selected_categories = request.data.getlist('categories', []) 
+        user = User.objects.get(id=author_id)
+        folderId = '1SMPcRVyp1y36Tqxyxgt0wD5zItzzOKoC'
 
-    fileId = uploadEbookForReview(pdf_file,folderId,ebook_title)
+        fileId = uploadEbookForReview(pdf_file,folderId,ebook_title)
 
-    new_ebook = eBook.objects.create(
-        title=ebook_title,
-        author=user,
-        description=description,
-        content= fileId,
-        cover = 'assets/ebookCover/template1.png',
-        is_reviewed=False  # Initially set to False, indicating it needs review
-    )
-    # Add categories to eBook
-    categories_objs = Category.objects.filter(name__in=selected_categories)
-    new_ebook.categories.set(categories_objs)
-    new_ebook.save()
+        # Create eBook data dictionary
+        ebook_data = {
+            'title': ebook_title,
+            'author': user.id,
+            'description': description,
+            'content': fileId,
+            'cover': 'assets/ebookCover/template1.png',
+            'is_reviewed': False  ,
+            'categories': selected_categories
+        }
 
-    # Example response
-    return Response({'message': 'PDF document received and processed successfully.'})
 
+        # Serialize the eBook data
+        serializer = eBookSerializer(data=ebook_data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'message': 'eBook published successfully.'}, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        print(f"Error in publish view: {str(e)}")
+        return Response({'message': 'An unexpected error occurred. Please try again.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

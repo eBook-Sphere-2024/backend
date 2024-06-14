@@ -23,9 +23,6 @@ class eBook(models.Model):
         return self.title
     
 
-    def __str__(self):
-        return self.title
-
 class Rating(models.Model):
     ebook = models.ForeignKey('eBook', on_delete=models.CASCADE, related_name='ratings')
     user = models.ForeignKey(User, on_delete=models.CASCADE)
