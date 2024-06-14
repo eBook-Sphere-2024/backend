@@ -4,7 +4,8 @@ from User.serializers import RegisterSerializer
 from .models import eBook , Category
 from eBook.serializers import RatingSerializer, eBookSerializer , CategorySerializer
 from django.core.exceptions import ObjectDoesNotExist
-
+from django.template.loader import render_to_string
+from django.core.mail import send_mail
 from eBook.utility import *
 
 # Base Command class
@@ -53,11 +54,19 @@ class EditEbookCommand(Command):
                 if serializer.validated_data.get('is_reviewed', True) and not ebook.is_reviewed:
                     try:
                         folderIdToMoveTo = '17iMoJjzjuOvF0giYCGZjfLZuoD5hp5NI'
+                        folderIdToMoveToCover='155RIatX8R6Abd_6UQDpJe5wirqRRU1E3'
                         fileId = move_file_in_google_drive(ebook.content ,folderIdToMoveTo)
+                        coverId = moveCoverInGoogleDrive(ebook.cover ,folderIdToMoveToCover)
                         ebook.content = fileId 
+                        ebook.cover = coverId
                         serializer.save()
                         #add indexing
-                        # utility.send_mail_to_user(ebook) Accepted
+                        subject = 'Response of Ebook Review'
+                        message = render_to_string('ReviewEmails/reviewAccepted.txt', {
+                            'Author': ebook.author.username,
+                            'Title': ebook.title
+                        })
+                        send_mail(subject, message, 'ebooksphere210@gmail.com', [ebook.author.email])
                     except:
                         return False,"Error in moving file", serializer.errors
                 elif serializer.validated_data.get('is_reviewed', True) and ebook.is_reviewed:
@@ -65,7 +74,16 @@ class EditEbookCommand(Command):
                 else:
                     serializer.save()
                     #remove from drive and from ebooks table
-                    # utility.send_mail_to_user(ebook) Rejected
+                    delete_file_in_google_drive(ebook.content)
+                    delete_file_in_google_drive(ebook.cover)
+                    DeleteEbookCommand(ebook.id).execute()
+
+                    subject = 'Response of Ebook Review'
+                    message = render_to_string('ReviewEmails/reviewRejected.txt', {
+                        'Author': ebook.author.username,
+                        'Title': ebook.title
+                    })
+                    send_mail(subject, message, 'ebooksphere210@gmail.com', [ebook.author.email])
 
                 return True,"Success", serializer.data
             else:

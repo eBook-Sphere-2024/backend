@@ -1,0 +1,10 @@
+{% block content %}
+Dear {{Author}},
+
+We are pleased to inform you that your eBook submission titled "{{Title}}" has been accepted for review.
+
+Thank you for your contribution!
+
+Best regards,
+eBook Sphere
+{% endblock %}
