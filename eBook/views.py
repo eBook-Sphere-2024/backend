@@ -167,16 +167,16 @@ def publish(request):
         selected_categories = request.data.getlist('categories', []) 
         user = User.objects.get(id=author_id)
         folderId = '1SMPcRVyp1y36Tqxyxgt0wD5zItzzOKoC'
-
+        coverFolderId = '1bU5DarU3VxuMsMppm9dcm7VrwXq_dJYn'
         fileId = uploadEbookForReview(pdf_file,folderId,ebook_title)
-
+        coverId = process_and_upload_cover_image(fileId, folderId, coverFolderId, ebook_title)
         # Create eBook data dictionary
         ebook_data = {
             'title': ebook_title,
             'author': user.id,
             'description': description,
             'content': fileId,
-            'cover': 'assets/ebookCover/template1.png',
+            'cover': coverId,
             'is_reviewed': False  ,
             'categories': selected_categories
         }

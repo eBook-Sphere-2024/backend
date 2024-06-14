@@ -1,0 +1,10 @@
+{% block content %}
+Dear {{Author}},
+
+We regret to inform you that your eBook submission titled "{{Title}}" has been rejected due to a violation of our policies.
+
+Thank you for your contribution!
+
+Best regards,
+eBook Sphere
+{% endblock %}
