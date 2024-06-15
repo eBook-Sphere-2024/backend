@@ -170,6 +170,7 @@ def publish(request):
         coverFolderId = '1bU5DarU3VxuMsMppm9dcm7VrwXq_dJYn'
         fileId = uploadEbookForReview(pdf_file,folderId,ebook_title)
         coverId = process_and_upload_cover_image(fileId, folderId, coverFolderId, ebook_title)
+        coverId = "https://drive.google.com/thumbnail?id="+coverId
         # Create eBook data dictionary
         ebook_data = {
             'title': ebook_title,
