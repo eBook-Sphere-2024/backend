@@ -11,7 +11,7 @@ from googleapiclient.http import MediaIoBaseDownload
 import chardet
 
 # Connect to Elasticsearch
-es = Elasticsearch(['https://localhost:9200'], basic_auth=('elastic', '123456'), request_timeout=400,verify_certs=False)
+es = Elasticsearch(['http://localhost:9200'], basic_auth=('elastic', '123456'), request_timeout=400)
 
 # Initialize BERT tokenizer and model
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')

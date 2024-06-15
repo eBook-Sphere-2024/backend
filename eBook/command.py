@@ -7,6 +7,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
 from eBook.utility import *
+from search.semanticSearch import index_one_ebook
 
 # Base Command class
 class Command(ABC):
@@ -22,22 +23,8 @@ class CreateEbookCommand(Command):
     def execute(self):
         serializer = eBookSerializer(data=self.data)
         if serializer.is_valid():
-            ebook_instance = serializer.save()  # Save the eBook instance
-            
-            # Create initial rating for the eBook
-            rate_data = {
-                'ebook': ebook_instance.id,
-                'user': self.data.get('author'),
-                'rate': 0
-            }
-            rating_serializer = RatingSerializer(data=rate_data)
-            if rating_serializer.is_valid():
-                rating_serializer.save()
-                return serializer.data
-            else:
-                # If creating the initial rating fails, delete the eBook instance
-                ebook_instance.delete()
-                return rating_serializer.errors
+           serializer.save()  # Save the eBook instance
+           return serializer.data
         return serializer.errors
 
 
@@ -51,16 +38,24 @@ class EditEbookCommand(Command):
             ebook = eBook.objects.get(id=self.ebook_id)
             serializer = eBookSerializer(ebook, data=self.data, partial=True)
             if serializer.is_valid():
-                if serializer.validated_data.get('is_reviewed', True) and not ebook.is_reviewed:
+                if 'is_reviewed' not in self.data:
+                    serializer.save()
+                elif serializer.validated_data.get('is_reviewed')==True and not ebook.is_reviewed:
                     try:
                         folderIdToMoveTo = '17iMoJjzjuOvF0giYCGZjfLZuoD5hp5NI'
                         folderIdToMoveToCover='155RIatX8R6Abd_6UQDpJe5wirqRRU1E3'
                         fileId = move_file_in_google_drive(ebook.content ,folderIdToMoveTo)
-                        coverId = moveCoverInGoogleDrive(ebook.cover ,folderIdToMoveToCover)
+                        cover = ebook.cover[start_index:]+len("id=")
+                        coverId = moveCoverInGoogleDrive(cover ,folderIdToMoveToCover)
                         ebook.content = fileId 
-                        ebook.cover = coverId
+                        ebook.cover = "https://drive.google.com/thumbnail?id="+ coverId
                         serializer.save()
                         #add indexing
+                        try:
+                            index_one_ebook(fileId)
+                        except:
+                            return False,"Error in indexing file", serializer.errors
+                        #email confirm
                         subject = 'Response of Ebook Review'
                         message = render_to_string('ReviewEmails/reviewAccepted.txt', {
                             'Author': ebook.author.username,
@@ -69,13 +64,21 @@ class EditEbookCommand(Command):
                         send_mail(subject, message, 'ebooksphere210@gmail.com', [ebook.author.email])
                     except:
                         return False,"Error in moving file", serializer.errors
-                elif serializer.validated_data.get('is_reviewed', True) and ebook.is_reviewed:
+                elif serializer.validated_data.get('is_reviewed')==True and ebook.is_reviewed:
                     serializer.save()
-                else:
+                elif serializer.validated_data.get('is_reviewed')==False and not ebook.is_reviewed:
                     serializer.save()
                     #remove from drive and from ebooks table
-                    delete_file_in_google_drive(ebook.content)
-                    delete_file_in_google_drive(ebook.cover)
+                    try:
+                        delete_file_in_google_drive(ebook.content)
+                    except:
+                        return False,"Error in deleting file", serializer.errors
+                    try:
+                        start_index = ebook.cover.find('id=') + len('id=')
+                        cover = ebook.cover[start_index:]
+                        delete_file_in_google_drive(cover)
+                    except:
+                        return False,"Error in deleting cover", serializer.errors
                     DeleteEbookCommand(ebook.id).execute()
 
                     subject = 'Response of Ebook Review'
@@ -84,7 +87,8 @@ class EditEbookCommand(Command):
                         'Title': ebook.title
                     })
                     send_mail(subject, message, 'ebooksphere210@gmail.com', [ebook.author.email])
-
+                else:
+                    serializer.save()
                 return True,"Success", serializer.data
             else:
                 return False,"Error", serializer.errors
