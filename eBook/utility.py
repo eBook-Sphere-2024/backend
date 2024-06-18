@@ -1,3 +1,4 @@
+import base64
 import fitz  # PyMuPDF
 from PIL import Image
 import io
@@ -6,6 +7,7 @@ from tempfile import NamedTemporaryFile
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload, MediaIoBaseDownload
+
 
 # Function to upload eBook PDF file for review
 def uploadEbookForReview(pdf_file, folderId, fileName):
@@ -187,3 +189,17 @@ def delete_file_in_google_drive(file_id):
     service = build('drive', 'v3', credentials=creds)
     service.files().delete(fileId=file_id).execute()
     print(f"File {file_id} deleted successfully.")
+
+def get_content(file_id):
+    service_account_file = 'eBook/credential.json'
+    credentials = Credentials.from_service_account_file(service_account_file)
+    drive_service = build('drive', 'v3', credentials=credentials)
+    request = drive_service.files().get_media(fileId=file_id)
+    fh = io.BytesIO()
+    downloader = MediaIoBaseDownload(fh, request)
+    done = False
+    while not done:
+        status, done = downloader.next_chunk()
+    fh.seek(0)
+    pdf_content = fh.read()
+    return pdf_content
