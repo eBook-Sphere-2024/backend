@@ -1,4 +1,5 @@
 import os
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
 
@@ -192,4 +193,19 @@ def publish(request):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         print(f"Error in publish view: {str(e)}")
+        return Response({'message': 'An unexpected error occurred. Please try again.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+
+@api_view(['GET'])
+def get_ebook_content(request):
+    ebook_id = request.GET.get('id')
+    if not ebook_id:
+        return Response({'message': 'ebook_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    ebook = get_object_or_404(eBook, id=ebook_id)
+    try:
+        content = get_content(ebook.content)
+        return HttpResponse(content, content_type='application/pdf')
+    except Exception as e:
         return Response({'message': 'An unexpected error occurred. Please try again.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
