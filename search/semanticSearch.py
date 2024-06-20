@@ -9,7 +9,12 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload 
 import chardet
+from PIL import Image
+import pytesseract
+import fitz
+from pdf2image import convert_from_bytes
 
+pytesseract.pytesseract.tesseract_cmd = r'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
 # Connect to Elasticsearch
 es = Elasticsearch(['http://localhost:9200'], basic_auth=('elastic', '123456'), request_timeout=400)
 
@@ -87,30 +92,41 @@ def index_one_document(file_id,file_list, index_name, drive_service):
         raise RuntimeError(f"Error occurred while indexing eBook: {e}")
 
 
-def download_pdf_content(file_id , drive_service):
+def download_pdf_content(file_id, drive_service):
     try:
-        file = drive_service.files().get_media(fileId=file_id).execute()
+        # Fetch the PDF file from Google Drive
+        request = drive_service.files().get_media(fileId=file_id)
+        file_stream = io.BytesIO()
+        downloader = MediaIoBaseDownload(file_stream, request)
+        done = False
+        while not done:
+            status, done = downloader.next_chunk()
         
-        # Try decoding with different codecs
-        for codec in ['utf-8', 'latin-1']:  # You can add more codecs to try
-            try:
-                content = file.decode(codec)
-                return content
-            except UnicodeDecodeError:
-                continue
+        file_stream.seek(0)
+        document = fitz.open(stream=file_stream, filetype='pdf')
+        pdf_content = ''
+
+        for page_num in range(len(document)):
+            page = document.load_page(page_num)
+            page_text = page.get_text()
+            
+            if page_text:
+                pdf_content += page_text + '\n'  # Accumulate text content from all pages
+            else:
+                # If no text is found, use OCR to extract text from images
+                pix = page.get_pixmap()
+                image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                image_text = pytesseract.image_to_string(image)
+                pdf_content += image_text + '\n'
         
-        # If all codecs fail, try using chardet to detect the encoding
-        encoding = chardet.detect(file)['encoding']
-        if encoding:
-            content = file.decode(encoding)
-            return content
+        document.close()
         
-        # If chardet cannot detect the encoding, print an error message
-        raise RuntimeError(f"Failed to decode PDF content for file ID {file_id}: Unknown encoding")
-        return None    
+        return pdf_content.strip()  # Return only the text content
+    
     except Exception as e:
         raise RuntimeError(f"Error occurred while downloading PDF content for file ID {file_id}: {e}")
 
+    
 def semantic_search(query):
     try:
         combined_query = query + ' ' + ' '.join(expand_query_with_synonyms(query))
