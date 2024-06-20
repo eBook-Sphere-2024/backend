@@ -1,9 +1,10 @@
 from django.urls import path
-from Comments.views import CommentAPI, get_all_replies
+from Comments.views import *
+from ReaderAnalysis.views import *
 from eBook.views import *
 from User.views import *
 from Template.views import *
-from FavoriteBooks.views import *
+from FavoriteBooks.views import * 
 from search.views import searchAPI , RelatedEBookAPI , IndexAPIView
 urlpatterns = [
     path('users/', UserAPI.as_view()),
@@ -30,4 +31,8 @@ urlpatterns = [
     path('FavoriteBooks/',FavoriteBooksAPI.as_view()),
     path('publish/',publish),
     path('ebookContent/',get_ebook_content),
+    path('ReaderAnalysis/',ReaderAnalysisAPI.as_view()),
+    path('SpecificReaderAnalysis/',SpecificReaderAnalysis),
+    path('ReaderAnalysisSpecificBook/',ReaderAnalysisSpecificBook),
+    path('CommentAnalysis/',CommentAnalysis),
 ]
