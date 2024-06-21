@@ -1,9 +1,12 @@
 from django.http import JsonResponse
+from Comments.models import Comment
+from eBook.models import eBook
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
 from .serializers import ChangePasswordSerializer, LoginSerializer, RegisterSerializer , UserProfileSerializer
 from django.contrib.auth import authenticate
+from ReaderAnalysis.models import ReaderAnalysis
 from rest_framework.decorators import api_view
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
@@ -264,3 +267,21 @@ def get_existing_file(service, folder_id, user_id):
         return files[0]  # Return the first matching file
     else:
         return None  # No existing file found
+
+@api_view(['GET'])
+def GetBookAnalyticsNumbers(request):
+    author_id = request.GET.get('author_id')
+    if not author_id:
+        return Response({'message': 'author_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        eBooks = eBook.objects.filter(author=author_id)
+        Readers = 0
+        comments = 0
+        for book in eBooks:
+            Readers += ReaderAnalysis.objects.filter(ebook=book).count()
+            comments += Comment.objects.filter(ebook=book).count()
+        return Response({'comments': comments, 'eBooks': eBooks.count(), 'Readers': Readers}, status=status.HTTP_200_OK)
+    
+    except Exception as e:
+        return Response({'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)

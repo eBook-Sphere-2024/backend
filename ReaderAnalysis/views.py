@@ -30,10 +30,18 @@ class ReaderAnalysisAPI(APIView):
         analysis = get_object_or_404(ReaderAnalysis, pk=id)
         serializer = ReaderSerializer(analysis, data=request.data, partial=True)
         if serializer.is_valid():
-            serializer.save()
+            new_highest_progress = serializer.validated_data.get('highest_progress', analysis.highest_progress)
+            if new_highest_progress > analysis.highest_progress:
+                analysis.highest_progress = new_highest_progress
+            
+            # Update other attributes
+            analysis.currentPgae = serializer.validated_data.get('currentPgae', analysis.currentPgae)
+            analysis.totalPages = serializer.validated_data.get('totalPages', analysis.totalPages)
+            
+            analysis.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+    
     def delete(self, request):
         id = request.query_params.get('id')
         if not id:

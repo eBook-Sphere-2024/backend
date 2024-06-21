@@ -35,4 +35,5 @@ urlpatterns = [
     path('SpecificReaderAnalysis/',SpecificReaderAnalysis),
     path('ReaderAnalysisSpecificBook/',ReaderAnalysisSpecificBook),
     path('CommentAnalysis/',CommentAnalysis),
+    path('BookAnalyticsNumbers/',GetBookAnalyticsNumbers),
 ]
