@@ -7,6 +7,8 @@ from rest_framework import status
 from Comments.serializers import CommentSerializer
 from eBook.serializers import eBookSerializer
 from User.serializers import RegisterSerializer
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from nltk import download
 from rest_framework.decorators import api_view
 
 class CommentAPI(APIView):
@@ -100,3 +102,53 @@ def get_all_replies(request):
         serialized_comments.append(serialized_comment)
     return Response(serialized_comments , status=status.HTTP_200_OK)
 
+@api_view(['GET'])
+def CommentAnalysis(request):
+    book_id = request.GET.get('book_id')
+    
+    # Check if book_id is provided
+    if not book_id:
+        return Response({"error": "Book ID parameter (book_id) is required"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Filter comments by book_id
+    comments = Comment.objects.filter(ebook=book_id)
+    
+    # Check if comments exist
+    if not comments.exists():
+        return Response({"error": "No comments found for the provided book ID"}, status=status.HTTP_404_NOT_FOUND)
+    
+    # Download the VADER lexicon
+    download('vader_lexicon')
+    
+    # Initialize the VADER sentiment analyzer
+    sia = SentimentIntensityAnalyzer()
+
+    # Function to classify comments
+    def classify_sentiment(score):
+        if score['compound'] >= 0.05:
+            return 'positive'
+        elif score['compound'] <= -0.05:
+            return 'negative'
+        else:
+            return 'neutral'
+
+    # Analyze comments and classify sentiment
+    positive_count = 0
+    negative_count = 0
+
+    for comment in comments:
+        sentiment = sia.polarity_scores(comment.content)
+        sentiment_class = classify_sentiment(sentiment)
+        if sentiment_class == 'positive':
+            positive_count += 1
+        elif sentiment_class == 'negative':
+            negative_count += 1
+
+    total_comments = positive_count + negative_count
+    positive_precision = positive_count / total_comments if total_comments else 0
+    negative_precision = negative_count / total_comments if total_comments else 0
+
+    return Response({
+        "positive_precision": round(positive_precision, 2),
+        "negative_precision": round(negative_precision, 2)
+    }, status=status.HTTP_200_OK)
