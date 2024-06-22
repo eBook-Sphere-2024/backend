@@ -5,7 +5,7 @@ from eBook.views import *
 from User.views import *
 from Template.views import *
 from FavoriteBooks.views import * 
-from search.views import searchAPI , RelatedEBookAPI , IndexAPIView
+from search.views import searchAPI , RelatedEBookAPI , IndexAPIView , indexAll, deleteIndex
 urlpatterns = [
     path('users/', UserAPI.as_view()),
     path('login/', LoginAPI.as_view()),
@@ -36,4 +36,8 @@ urlpatterns = [
     path('ReaderAnalysisSpecificBook/',ReaderAnalysisSpecificBook),
     path('CommentAnalysis/',CommentAnalysis),
     path('BookAnalyticsNumbers/',GetBookAnalyticsNumbers),
+
+
+    path('indexAll/',indexAll),
+    path('deleteIndex/',deleteIndex)
 ]
