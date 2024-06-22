@@ -17,7 +17,7 @@ from pdf2image import convert_from_bytes
 pytesseract.pytesseract.tesseract_cmd = r'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
 
 # Connect to Elasticsearch
-es = Elasticsearch(['https://localhost:9200'], basic_auth=('elastic', '123456'),verify_certs=False)
+es = Elasticsearch(['http://localhost:9200'], basic_auth=('elastic', '123456'),request_timeout=400)
 
 # Initialize BERT tokenizer and model
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
@@ -36,12 +36,23 @@ def embed_text(text):
     return embedded_text
     
 # Function to expand query with WordNet synonyms
-def expand_query_with_synonyms(query):
-    synonyms = []
+def expand_query_with_synonyms(query, max_synonyms=5):
+    synonyms = set()
+    
+    # Get synonyms from WordNet
     for synset in wn.synsets(query):
         for lemma in synset.lemmas():
-            synonyms.append(lemma.name())
-    return list(set(synonyms))
+            synonyms.add(lemma.name())
+            
+    # Get definitions, hypernyms, and hyponyms
+    for synset in wn.synsets(query):
+        synonyms.add(synset.definition())  # Include definition
+        synonyms.update([lemma.name() for hypernym in synset.hypernyms() for lemma in hypernym.lemmas()])  # Include hypernyms
+        synonyms.update([lemma.name() for hyponym in synset.hyponyms() for lemma in hyponym.lemmas()])  # Include hyponyms
+    
+    # Convert set to list and limit to max_synonyms
+    synonyms_list = list(synonyms)[:max_synonyms]
+    return synonyms_list
 
 # Function to index documents
 def index_documents(file_list, index_name , drive_service):
@@ -131,7 +142,6 @@ def download_pdf_content(file_id, drive_service):
 def semantic_search(query):
     try:
         combined_query = query + ' ' + ' '.join(expand_query_with_synonyms(query))
-        
         # Embed combined query using BERT
         query_vector = embed_text(combined_query)
         # Prepare Elasticsearch query
@@ -155,6 +165,7 @@ def semantic_search(query):
             if '_source' in hit and 'filename' in hit['_source']:
                 text_title = hit['_source']['filename']
                 if text_title not in encountered_texts:
+                    print(text_title)
                     unique_hits.append(hit)
                     encountered_texts.add(text_title)
         return unique_hits
@@ -201,3 +212,7 @@ def index_one_ebook(file_id):
 def search_eBook(query):
     results = semantic_search(query)
     return results
+
+def delete_index():
+    index_name = 'ebook'
+    es.indices.delete(index=index_name)

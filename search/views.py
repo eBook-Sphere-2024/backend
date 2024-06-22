@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 from rest_framework import status
 
 from eBook.models import eBook
-from eBook.serializers import eBookSerializer
+from eBook.serializers import CategorySerializer, eBookSerializer
 from django.contrib.auth.models import User
 from User.serializers import RegisterSerializer
 from search.semanticSearch import *
@@ -71,8 +71,8 @@ class RelatedEBookAPI(APIView):
                 for hit in results:
                     # Filter eBook instances by filename
                     
-                    eBooks = eBook.objects.filter(title=hit['_source']['filename'][:-len('.pdf')])
-
+                    eBooks = eBook.objects.filter(content=hit['_source']['fileId'])
+                    print(eBooks)
                     if eBooks:  # Check if any eBooks are found
                         serializer = eBookSerializer(eBooks, many=True)
                         serialized_data_with_score = [{"score": hit['_score'], "eBook": eBook_data} for eBook_data in serializer.data]
@@ -80,8 +80,16 @@ class RelatedEBookAPI(APIView):
 
                 sorted_eBooks = sorted(eBooks_data, key=lambda x: x['score'], reverse=True)
                 sorted_eBooks_without_score = [eBook_data['eBook'] for eBook_data in sorted_eBooks]
-
-                return Response(sorted_eBooks_without_score, status=status.HTTP_200_OK)
+                serialized_ebooks = []
+                for ebook in sorted_eBooks_without_score:
+                    ebook = eBook.objects.get(id=ebook['id'])
+                    author_instance = ebook.author
+                    categories = ebook.categories.all()
+                    serialized_ebook = eBookSerializer(ebook).data
+                    serialized_ebook['categories'] = CategorySerializer(categories, many=True).data
+                    serialized_ebook['author'] = RegisterSerializer(author_instance).data
+                    serialized_ebooks.append(serialized_ebook)
+                return Response(serialized_ebooks, status=status.HTTP_200_OK)
 
             except RuntimeError as e:
                 return Response({"status": "failed", "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -94,3 +102,13 @@ class IndexAPIView(APIView):
         index_one_ebook(fileId)
         return Response({"status": "success"}, status=status.HTTP_200_OK)
     
+
+@api_view(['GET'])
+def indexAll(request):
+    index_eBooks()
+    return Response({"status": "success"}, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def deleteIndex(request):
+    delete_index()
+    return Response({"status": "success"}, status=status.HTTP_200_OK)
