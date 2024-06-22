@@ -101,6 +101,13 @@ class SetNewPasswordSerializer(serializers.Serializer):
         user.save()
         return user
     
+class ContactMailSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    email = serializers.EmailField()
+    subject = serializers.CharField()
+    message = serializers.CharField()
+
+
 class UserProfileSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
     

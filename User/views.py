@@ -4,7 +4,7 @@ from eBook.models import eBook
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
-from .serializers import ChangePasswordSerializer, LoginSerializer, RegisterSerializer , UserProfileSerializer
+from .serializers import ChangePasswordSerializer, ContactMailSerializer, LoginSerializer, RegisterSerializer , UserProfileSerializer
 from django.contrib.auth import authenticate
 from ReaderAnalysis.models import ReaderAnalysis
 from rest_framework.decorators import api_view
@@ -285,3 +285,23 @@ def GetBookAnalyticsNumbers(request):
     
     except Exception as e:
         return Response({'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+@api_view(['POST'])
+def ContactMail(request):
+    serializer = ContactMailSerializer(data=request.data)
+    if serializer.is_valid():
+    # Send email
+        name = serializer.validated_data['name']
+        email = serializer.validated_data['email']
+        subject = serializer.validated_data['subject']
+        message = serializer.validated_data['message']
+        full_message = f"Message from {name} <{email}>:\n\n{message}"
+        send_mail(
+            subject,
+            full_message,
+            '{{email}}',  
+            ['ebooksphere210@gmail.com'],  
+            fail_silently=False,
+            )
+        return Response({"message": "Email sent successfully"}, status=status.HTTP_200_OK)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
