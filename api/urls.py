@@ -36,8 +36,7 @@ urlpatterns = [
     path('ReaderAnalysisSpecificBook/',ReaderAnalysisSpecificBook),
     path('CommentAnalysis/',CommentAnalysis),
     path('BookAnalyticsNumbers/',GetBookAnalyticsNumbers),
-
-
     path('indexAll/',indexAll),
-    path('deleteIndex/',deleteIndex)
+    path('deleteIndex/',deleteIndex),
+    path('contact/',ContactMail),
 ]
