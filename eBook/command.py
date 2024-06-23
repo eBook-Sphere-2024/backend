@@ -45,7 +45,8 @@ class EditEbookCommand(Command):
                         folderIdToMoveTo = '17iMoJjzjuOvF0giYCGZjfLZuoD5hp5NI'
                         folderIdToMoveToCover='155RIatX8R6Abd_6UQDpJe5wirqRRU1E3'
                         fileId = move_file_in_google_drive(ebook.content ,folderIdToMoveTo)
-                        cover = ebook.cover[start_index:]+len("id=")
+                        start_index = ebook.cover.find('id=') + len("id=")
+                        cover = ebook.cover[start_index:]
                         coverId = moveCoverInGoogleDrive(cover ,folderIdToMoveToCover)
                         ebook.content = fileId 
                         ebook.cover = "https://drive.google.com/thumbnail?id="+ coverId
