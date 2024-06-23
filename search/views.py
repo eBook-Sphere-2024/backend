@@ -26,21 +26,17 @@ class searchAPI(APIView):
             )
             
             results = results.filter(is_reviewed=True)
-            # Filter results based on the criteria
+            
             filtered_results = []
+            
+            # Filter results based on the criteria
             for ebook in results:
                 title_lower = ebook.title.lower()
                 author_lower = ebook.author.username.lower()
-                if len(title_lower.split()) == 1 and len(author_lower.split()) == 1:
-                    if title_lower.startswith(query_lower) or author_lower.startswith(query_lower):
-                        filtered_results.append(ebook)
-                else:
-                    title_words = title_lower.split()
-                    author_words = author_lower.split()
-                    title_matches = any(word.startswith(query_lower) for word in title_words)
-                    author_matches = any(word.startswith(query_lower) for word in author_words)
-                    if title_matches or author_matches:
-                        filtered_results.append(ebook)
+                
+                # Check if any word in query is in title or author
+                if all(word in title_lower or word in author_lower for word in query_lower.split()):
+                    filtered_results.append(ebook)
 
             # Retrieve the user instances for the authors of the eBooks
             user_ids = [ebook.author.id for ebook in filtered_results]
@@ -60,6 +56,7 @@ class searchAPI(APIView):
             return Response(ebook_serializer.data)
         else:
             return Response({"error": "No search query provided"}, status=status.HTTP_400_BAD_REQUEST)
+        
 class RelatedEBookAPI(APIView):
     def get(self, request):
         query = request.GET.get('query')
@@ -67,7 +64,6 @@ class RelatedEBookAPI(APIView):
             try:
                 results = search_eBook(query)
                 eBooks_data = []
-
                 for hit in results:
                     # Filter eBook instances by filename
                     
