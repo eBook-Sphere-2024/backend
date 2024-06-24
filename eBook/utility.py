@@ -20,15 +20,21 @@ def uploadEbookForReview(pdf_file, folderId, fileName):
         'parents': [folderId]
     }
 
-    media = MediaIoBaseUpload(io.BytesIO(pdf_file.read()), mimetype='application/pdf')
+    media = MediaIoBaseUpload(pdf_file, mimetype='application/pdf', chunksize=-1, resumable=True)
 
-    uploaded_file = service.files().create(
+    request = service.files().create(
         body=file_metadata,
         media_body=media,
         fields='id'
-    ).execute()
+    )
 
-    return uploaded_file.get('id')
+    response = None
+    while response is None:
+        status, response = request.next_chunk()
+        if status:
+            print(f"Uploaded {int(status.progress() * 100)}%.")
+
+    return response.get('id')
 
 # Function to move file in Google Drive
 def move_file_in_google_drive(fileId, folderIdToUpload):
