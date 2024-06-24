@@ -69,8 +69,16 @@ def filter_books_by_category(request):
         command = FilterBooksByCategoryCommand(category_id)
         ebooks_data = command.execute()
         
-        serializer = eBookSerializer(ebooks_data, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        serialized_ebooks = []
+        for ebook in ebooks_data:
+            author_instance = ebook.author
+            categories = ebook.categories.all()
+            serialized_ebook = eBookSerializer(ebook).data
+            serialized_ebook['categories'] = CategorySerializer(categories, many=True).data
+            serialized_ebook['author'] = RegisterSerializer(author_instance).data
+            serialized_ebooks.append(serialized_ebook)
+
+        return Response(serialized_ebooks, status=status.HTTP_200_OK)
     except Category.DoesNotExist:
         return Response({"error": "Category not found"}, status=status.HTTP_404_NOT_FOUND)
     
