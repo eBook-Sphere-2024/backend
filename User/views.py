@@ -36,10 +36,8 @@ class LoginAPI(APIView):
                 'status': False,
                 'message': serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
-
         username = serializer.validated_data.get('username', None)
         password = serializer.validated_data.get('password', None)
-
         user = authenticate(username=username, password=password)
 
         if not user:
@@ -76,15 +74,12 @@ class UserAPI(APIView):
                     profile_serializer.save()
                     username = user_serializer.validated_data.get('username', None)
                     password = user_serializer.validated_data.get('password', None)
-
                     user = authenticate(username=username, password=password)
-
                     if not user:
                         return Response({
                             'status': False,
                             'message': "Username or password is incorrect"
                         }, status=status.HTTP_400_BAD_REQUEST)
-
                     token, _ = Token.objects.get_or_create(user=user)
                     return Response(str(token),status=status.HTTP_201_CREATED)
                 else:
@@ -103,7 +98,6 @@ class UserAPI(APIView):
     
         if user_id is None:
             return Response({"status": "failed", "message": "User ID is required"}, status=status.HTTP_400_BAD_REQUEST)
-
         try:
             user = User.objects.get(id=user_id)
         except User.DoesNotExist:
