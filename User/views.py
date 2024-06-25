@@ -36,10 +36,8 @@ class LoginAPI(APIView):
                 'status': False,
                 'message': serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
-
         username = serializer.validated_data.get('username', None)
         password = serializer.validated_data.get('password', None)
-
         user = authenticate(username=username, password=password)
 
         if not user:
@@ -76,15 +74,12 @@ class UserAPI(APIView):
                     profile_serializer.save()
                     username = user_serializer.validated_data.get('username', None)
                     password = user_serializer.validated_data.get('password', None)
-
                     user = authenticate(username=username, password=password)
-
                     if not user:
                         return Response({
                             'status': False,
                             'message': "Username or password is incorrect"
                         }, status=status.HTTP_400_BAD_REQUEST)
-
                     token, _ = Token.objects.get_or_create(user=user)
                     return Response(str(token),status=status.HTTP_201_CREATED)
                 else:
@@ -103,7 +98,6 @@ class UserAPI(APIView):
     
         if user_id is None:
             return Response({"status": "failed", "message": "User ID is required"}, status=status.HTTP_400_BAD_REQUEST)
-
         try:
             user = User.objects.get(id=user_id)
         except User.DoesNotExist:
@@ -219,7 +213,7 @@ class PasswordResetRequestView(APIView):
         return Response({"message": "Password reset email sent."}, status=status.HTTP_200_OK)
 
 class PasswordResetConfirmView(APIView):
-    def post(self, request, uidb64, token):
+    def post(self, request):
         serializer = SetNewPasswordSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -271,19 +265,11 @@ def get_existing_file(service, folder_id, user_id):
 @api_view(['GET'])
 def GetBookAnalyticsNumbers(request):
     author_id = request.GET.get('author_id')
-    if not author_id:
-        return Response({'message': 'author_id is required'}, status=status.HTTP_400_BAD_REQUEST)
-
     book_id = request.GET.get('book_id')
     if not author_id and not book_id:
         return Response({'message': 'author_id and book_id are required'}, status=status.HTTP_400_BAD_REQUEST)
     try:
-        eBooks = eBook.objects.filter(author=author_id)
-        Readers = 0
-        comments = 0
-        for book in eBooks:
-            Readers += ReaderAnalysis.objects.filter(ebook=book).count()
-            comments += Comment.objects.filter(ebook=book).count()
+        eBooks = eBook.objects.filter(author=author_id);
         Readers= ReaderAnalysis.objects.filter(ebook=book_id).count()
         comments = Comment.objects.filter(ebook=book_id).count()
         return Response({'comments': comments, 'eBooks': eBooks.count(), 'Readers': Readers}, status=status.HTTP_200_OK)
