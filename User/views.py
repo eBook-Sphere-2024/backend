@@ -213,7 +213,7 @@ class PasswordResetRequestView(APIView):
         return Response({"message": "Password reset email sent."}, status=status.HTTP_200_OK)
 
 class PasswordResetConfirmView(APIView):
-    def post(self, request):
+    def post(self, request,uidb64,token):
         serializer = SetNewPasswordSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -297,3 +297,5 @@ def ContactMail(request):
             )
         return Response({"message": "Email sent successfully"}, status=status.HTTP_200_OK)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+

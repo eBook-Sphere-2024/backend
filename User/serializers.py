@@ -13,7 +13,8 @@ class RegisterSerializer(serializers.Serializer):
     last_name = serializers.CharField(max_length=100)
     username = serializers.CharField(max_length=100)
     email = serializers.EmailField()
-    password = serializers.CharField()
+    password = serializers.CharField(min_length=8)
+
 
     def validate(self, data):
         instance_id = self.instance.id if self.instance else None

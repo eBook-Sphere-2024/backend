@@ -46,7 +46,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'Comments',
     'FavoriteBooks',
-    'ReaderAnalysis'
+    'ReaderAnalysis',
+    'django_extensions'
 ]
 
 MIDDLEWARE = [
