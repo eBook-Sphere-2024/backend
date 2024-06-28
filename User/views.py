@@ -26,6 +26,7 @@ from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import default_token_generator
 from django.template.loader import render_to_string
 
+from django.db.models.functions import Lower
 
 class LoginAPI(APIView):
     def post(self, request):
@@ -38,9 +39,14 @@ class LoginAPI(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
         username = serializer.validated_data.get('username', None)
         password = serializer.validated_data.get('password', None)
-        user = authenticate(username=username, password=password)
-
-        if not user:
+        # Ensure username is lowercase for consistent comparison
+        if username:
+            username_lower = username.lower()
+        
+        # Authenticate user with case-insensitive username
+        user = User.objects.filter(username__iexact=username_lower).first()
+        
+        if not user or not user.check_password(password):
             return Response({
                 'status': False,
                 'message': "Username or password is incorrect"
@@ -103,8 +109,13 @@ class UserAPI(APIView):
         except User.DoesNotExist:
             return Response({"status": "failed", "message": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
         
-        if User.objects.filter(username=data['username']).exclude(id=user_id).exists():
-            return Response({"status": "failed", "message": "Username already exists"}, status=status.HTTP_400_BAD_REQUEST)
+        # Convert username to lowercase if present in data
+        if 'username' in data:
+            username_lower = data['username'].lower()
+            # Check for username uniqueness in a case-insensitive manner
+            if User.objects.annotate(username_lower=Lower('username')).filter(username_lower=username_lower).exclude(id=user_id).exists():
+                return Response({"status": "failed", "message": "Username already exists"}, status=status.HTTP_400_BAD_REQUEST)
+            data['username'] = username_lower
         serializer = RegisterSerializer(user, data=data, partial=True)
         
         if serializer.is_valid():
