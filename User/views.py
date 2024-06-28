@@ -3,6 +3,7 @@ from Comments.models import Comment
 from eBook.models import eBook
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.db.models import Q
 from rest_framework import status
 from .serializers import ChangePasswordSerializer, ContactMailSerializer, LoginSerializer, RegisterSerializer , UserProfileSerializer
 from django.contrib.auth import authenticate
@@ -39,11 +40,10 @@ class LoginAPI(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
         username = serializer.validated_data.get('username', None)
         password = serializer.validated_data.get('password', None)
-        # Ensure username is lowercase for consistent comparison
+        
         if username:
             username_lower = username.lower()
         
-        # Authenticate user with case-insensitive username
         user = User.objects.filter(username__iexact=username_lower).first()
         
         if not user or not user.check_password(password):
@@ -54,8 +54,9 @@ class LoginAPI(APIView):
 
         token, _ = Token.objects.get_or_create(user=user)
         return Response(
-            str(token)
-        , status=status.HTTP_200_OK)
+            str(token),
+            status=status.HTTP_200_OK
+        )
 
 
 class UserAPI(APIView):
@@ -99,8 +100,8 @@ class UserAPI(APIView):
             return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
     def patch(self, request):
-        data = request.data.copy()  # Make a copy of the data to avoid modifying the original request data
-        user_id = data.pop('id', None)  # Remove 'id' from the data and get its value
+        data = request.data.copy()
+        user_id = data.pop('id', None)
     
         if user_id is None:
             return Response({"status": "failed", "message": "User ID is required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -109,13 +110,11 @@ class UserAPI(APIView):
         except User.DoesNotExist:
             return Response({"status": "failed", "message": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
         
-        # Convert username to lowercase if present in data
         if 'username' in data:
-            username_lower = data['username'].lower()
-            # Check for username uniqueness in a case-insensitive manner
-            if User.objects.annotate(username_lower=Lower('username')).filter(username_lower=username_lower).exclude(id=user_id).exists():
+            username = data['username']
+            if User.objects.annotate(username_lower=Lower('username')).filter(Q(username__iexact=username) & ~Q(id=user_id)).exists():
                 return Response({"status": "failed", "message": "Username already exists"}, status=status.HTTP_400_BAD_REQUEST)
-            data['username'] = username_lower
+        
         serializer = RegisterSerializer(user, data=data, partial=True)
         
         if serializer.is_valid():

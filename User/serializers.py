@@ -7,6 +7,7 @@ from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import  force_str
 from django.contrib.auth.tokens import default_token_generator
 from django.db.models.functions import Lower
+from django.db.models import Q
 
 class RegisterSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
@@ -16,14 +17,15 @@ class RegisterSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(min_length=8)
 
-
     def validate(self, data):
         instance_id = self.instance.id if self.instance else None
-        username_lower = data['username'].lower()
-        if 'username' in data and User.objects.annotate(username_lower=Lower('username')).filter(username_lower=username_lower).exclude(id=instance_id).exists():
+        username = data['username']
+        if 'username' in data and User.objects.annotate(username_lower=Lower('username')).filter(Q(username__iexact=username) & ~Q(id=instance_id)).exists():
             raise serializers.ValidationError('Username already exists')
         if 'email' in data and User.objects.filter(email=data['email']).exclude(id=instance_id).exists():
             raise serializers.ValidationError('Email already exists')
+        if 'password' in data and len(data['password']) < 8:
+            raise serializers.ValidationError('Password must be at least 8 characters long')
         return data
     
     def create(self, validated_data):
@@ -47,7 +49,7 @@ class RegisterSerializer(serializers.Serializer):
             instance.set_password(password)
         instance.save()
         return instance
-
+    
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField()
