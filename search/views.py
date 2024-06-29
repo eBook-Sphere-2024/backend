@@ -9,8 +9,9 @@ from eBook.models import eBook
 from eBook.serializers import CategorySerializer, eBookSerializer
 from django.contrib.auth.models import User
 from User.serializers import RegisterSerializer
-from search.semanticSearch import *
+from search.semanticSearch import semanticSearch
 
+semantic_search_instance = semanticSearch()
 
 
 class searchAPI(APIView):
@@ -65,7 +66,7 @@ class RelatedEBookAPI(APIView):
         query = request.GET.get('query')
         if query:
             try:
-                results = search_eBook(query)
+                results = semantic_search_instance.search_eBook(query)
                 eBooks_data = []
 
                 for hit in results:
@@ -99,16 +100,16 @@ class RelatedEBookAPI(APIView):
 class IndexAPIView(APIView):
     def get(self, request):
         fileId = request.GET.get('fileId')
-        index_one_ebook(fileId)
+        semantic_search_instance.index_one_ebook(fileId)
         return Response({"status": "success"}, status=status.HTTP_200_OK)
     
 
 @api_view(['GET'])
 def indexAll(request):
-    index_eBooks()
+    semantic_search_instance.index_eBooks()
     return Response({"status": "success"}, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 def deleteIndex(request):
-    delete_index()
+    semantic_search_instance.delete_index()
     return Response({"status": "success"}, status=status.HTTP_200_OK)

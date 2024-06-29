@@ -7,7 +7,9 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
 from eBook.utility import *
-from search.semanticSearch import index_one_ebook
+from search.semanticSearch import semanticSearch
+
+semantic_search_instance = semanticSearch()
 
 # Base Command class
 class Command(ABC):
@@ -53,7 +55,7 @@ class EditEbookCommand(Command):
                         serializer.save()
                         #add indexing
                         try:
-                            index_one_ebook(fileId)
+                            semantic_search_instance.index_one_ebook(fileId)
                         except:
                             return False,"Error in indexing file", serializer.errors
                         #email confirm

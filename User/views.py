@@ -134,7 +134,7 @@ class UserAPI(APIView):
         return Response({'status': "success", "message": "User deleted successfully"}, status=status.HTTP_200_OK)
 
 
-class User_Profile(APIView):
+class UserProfileAPI(APIView):
     parser_classes = [MultiPartParser]
     def get(self, request):
         user_id = request.GET.get('id')
@@ -288,24 +288,24 @@ def GetBookAnalyticsNumbers(request):
         return Response({'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
     
-@api_view(['POST'])
-def ContactMail(request):
-    serializer = ContactMailSerializer(data=request.data)
-    if serializer.is_valid():
-    # Send email
-        name = serializer.validated_data['name']
-        email = serializer.validated_data['email']
-        subject = serializer.validated_data['subject']
-        message = serializer.validated_data['message']
-        full_message = f"Message from {name} <{email}>:\n\n{message}"
-        send_mail(
-            subject,
-            full_message,
-            '{{email}}',  
-            ['ebooksphere210@gmail.com'],  
-            fail_silently=False,
-            )
-        return Response({"message": "Email sent successfully"}, status=status.HTTP_200_OK)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+class ContactMailAPI(APIView):
+    def post(self, request):
+        serializer = ContactMailSerializer(data=request.data)
+        if serializer.is_valid():
+        # Send email
+            name = serializer.validated_data['name']
+            email = serializer.validated_data['email']
+            subject = serializer.validated_data['subject']
+            message = serializer.validated_data['message']
+            full_message = f"Message from {name} <{email}>:\n\n{message}"
+            send_mail(
+                subject,
+                full_message,
+                '{{email}}',  
+                ['ebooksphere210@gmail.com'],  
+                fail_silently=False,
+                )
+            return Response({"message": "Email sent successfully"}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
