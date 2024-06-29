@@ -18,7 +18,7 @@ urlpatterns = [
     path('comments/',CommentAPI.as_view()),
     path('template/',TemplateAPI.as_view()),
     path('getTemplateById/',getTemplateById.as_view()),
-    path('profile/',User_Profile.as_view()),
+    path('profile/',UserProfileAPI.as_view()),
     path('autherBooks/',AuthorBooksAPI.as_view()),
     path('replies/',get_all_replies),
     path('autherBooks/',AuthorBooksAPI.as_view()),
@@ -38,5 +38,5 @@ urlpatterns = [
     path('BookAnalyticsNumbers/',GetBookAnalyticsNumbers),
     path('indexAll/',indexAll),
     path('deleteIndex/',deleteIndex),
-    path('contact/',ContactMail),
+    path('contact/',ContactMailAPI.as_view()),
 ]
