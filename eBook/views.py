@@ -48,7 +48,8 @@ class EbookAPI(APIView):
         return Response({'message': message, 'data_or_errors': data_or_errors},status.HTTP_400_BAD_REQUEST)
     
     def delete(self, request):
-       ebook = get_object_or_404(eBook, id=request.data.get('id'))
+       id = request.query_params.get('id')
+       ebook = eBook.objects.get(id=id)
        command = DeleteEbookCommand(ebook.id)
        command.execute()
        return Response(status=status.HTTP_200_OK)
