@@ -11,6 +11,7 @@ import fitz
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload 
 from sentence_transformers import SentenceTransformer
+import google.generativeai as genai
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
 
@@ -28,11 +29,39 @@ class semanticSearch:
     def embed_text(self, text):
        return self.model.encode(text, convert_to_tensor=True)
 
-    def expand_query_with_synonyms(self, query, max_synonyms=5):
+    def expand_query_with_synonyms(self, query):
         synonyms = set()
         for synset in wn.synsets(query):
             synonyms.update(synset.lemma_names())
-        return list(synonyms)[:max_synonyms]
+        genai.configure(api_key="AIzaSyA48Xv_OzNzB-suQBU0pwsnTlN2Equ-_GU")
+
+        # Create the model
+        # See https://ai.google.dev/api/python/google/generativeai/GenerativeModel
+        generation_config = {
+        "temperature": 1,
+        "top_p": 0.95,
+        "top_k": 64,
+        "max_output_tokens": 8192,
+        "response_mime_type": "text/plain",
+        }
+
+        model = genai.GenerativeModel(
+        model_name="gemini-1.5-flash",
+        generation_config=generation_config,
+        # safety_settings = Adjust safety settings
+        # See https://ai.google.dev/gemini-api/docs/safety-settings
+        )
+
+        chat_session = model.start_chat(
+        history=[
+        ]
+        )
+        #print(f"What are some words related to {query} and the response should be a list?")
+        response = chat_session.send_message(f"What are some words related to {query} and the response should be a list?")
+        #print(f"Response: {response.text}")
+        result = response.text+ " ".join(list(synonyms)) +" "+ query
+        #print(f"Expanded query: {result}")
+        return result
 
     def pad_or_truncate(self, tensor, expected_dim):
         current_dim = tensor.size(0)
@@ -69,7 +98,43 @@ class semanticSearch:
                     raise RuntimeError(f"Failed to download PDF content for {pdf_title}")
             except Exception as e:
                 raise RuntimeError(f"Error occurred while indexing {pdf_title}: {e}")
-
+    def index_one_document(self,file_id, file_list,drive_service):
+        try:
+            for file in file_list:
+                pdf_title = file['name']
+                pdf_id = file['id']
+                if pdf_id == file_id:
+                    break
+            
+            pdf_content = self.download_pdf_content(file_id, drive_service)
+            
+            if pdf_content:
+                # Concatenate title and content
+                text_to_embed = f"{pdf_title}\n{pdf_content}"
+                
+                # Embed text using BERT
+                embedded_text = self.embed_text(text_to_embed)
+                padded_text_vector = self.pad_or_truncate(embedded_text, expected_dim=768)
+                # Convert embedded_text tensor to list of floats
+                embedded_text_list = padded_text_vector.tolist()
+                
+                document_body = {
+                    'filename': pdf_title,
+                    'text': pdf_content,
+                    'text_vector': embedded_text_list,  # Use the converted list
+                    'fileId': file_id
+                }
+                try:
+                    self.es.index(index=self.index_name, body=document_body)
+                    print(f"Indexed document: {pdf_title}")
+                except Exception as e:
+                    raise RuntimeError(f"Error occurred while indexing {pdf_title}: {e}")
+            else:
+                raise RuntimeError(f"Failed to download PDF content for {pdf_title}")
+        
+        except Exception as e:
+            raise RuntimeError(f"Error occurred while indexing eBook: {e}")
+        
     def download_pdf_content(self, file_id, drive_service):
         try:
             request = drive_service.files().get_media(fileId=file_id)
@@ -104,7 +169,8 @@ class semanticSearch:
 
     def semantic_search(self, query):
         try:
-            combined_query = query + ' ' + ' '.join(self.expand_query_with_synonyms(query))
+            combined_query = self.expand_query_with_synonyms(query)
+            #print(combined_query)
             query_vector = self.embed_text(combined_query)
             padded_text_vector = self.pad_or_truncate(query_vector, expected_dim=768)
             query_vector = padded_text_vector.tolist()
@@ -126,9 +192,10 @@ class semanticSearch:
             encountered_texts = set()
 
             for hit in search_results['hits']['hits']:
-                if '_source' in hit and 'filename' in hit['_source']:
-                    text_title = hit['_source']['filename']
+                if '_source' in hit and 'fileId' in hit['_source']:
+                    text_title = hit['_source']['fileId']
                     if text_title not in encountered_texts:
+                        #print(f"Matched document: {hit['_source']['filename']} with score: {hit['_score']}")
                         unique_hits.append(hit)
                         encountered_texts.add(text_title)
 
@@ -168,7 +235,29 @@ class semanticSearch:
 
     def delete_index(self):
         self.es.indices.delete(index=self.index_name)
+    def delete_document_by_fileid(self, file_id):
+        try:
+            # Search for the document by file_id
+            search_query = {
+                "query": {
+                    "term": {
+                        "fileId": file_id
+                    }
+                }
+            }
 
+            search_results = self.es.search(index=self.index_name, body=search_query)
+            
+            # Delete the document if found
+            if search_results['hits']['total']['value'] > 0:
+                for hit in search_results['hits']['hits']:
+                    self.es.delete(index=self.index_name, id=hit['_id'])
+                    #print(f"Deleted document with fileId: {file_id}")
+            else:
+                print(f"No document found with fileId: {file_id}")
+
+        except Exception as e:
+            raise RuntimeError(f"Error occurred while deleting document with fileId {file_id}: {e}")
     def search_eBook(self, query):
         results = self.semantic_search(query)
         return results
