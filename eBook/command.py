@@ -8,7 +8,7 @@ from django.template.loader import render_to_string
 from django.core.mail import send_mail
 from eBook.utility import *
 from search.semanticSearch import semanticSearch
-
+from eBook.utility import *
 semantic_search_instance = semanticSearch()
 
 # Base Command class
@@ -103,6 +103,14 @@ class DeleteEbookCommand(Command):
         self.ebook_id = ebook_id
 
     def execute(self):
+        ebook = eBook.objects.get(id=self.ebook_id)
+        print(ebook.content)
+        delete_file_in_google_drive(ebook.content)
+        start_index = ebook.cover.find('id=') + len('id=')
+        cover = ebook.cover[start_index:]
+        delete_file_in_google_drive(cover)
+        if(ebook.is_reviewed == True):
+            semantic_search_instance.delete_document_by_fileid(ebook.content)
         eBook.objects.filter(id=self.ebook_id).delete()
 
 class ShowBooksCommand(Command):

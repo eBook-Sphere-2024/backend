@@ -102,6 +102,10 @@ class IndexAPIView(APIView):
         fileId = request.GET.get('fileId')
         semantic_search_instance.index_one_ebook(fileId)
         return Response({"status": "success"}, status=status.HTTP_200_OK)
+    def delete(self, request):
+        fileId = request.GET.get('fileId')
+        semantic_search_instance.delete_document_by_fileid(fileId)
+        return Response({"status": "success"}, status=status.HTTP_200_OK)
     
 
 @api_view(['GET'])
