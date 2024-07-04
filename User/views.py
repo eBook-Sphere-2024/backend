@@ -74,7 +74,6 @@ class UserAPI(APIView):
                 user_serializer.save()
                 user_instance = user_serializer.instance
                 # Create a UserProfile instance associated with the newly created user
-                print(user_instance.id)
                 profile_data = {'user': user_instance.id}  # user_instance.id is the ID of the newly created user
                 profile_serializer = UserProfileSerializer(data=profile_data)
                 if profile_serializer.is_valid():
@@ -167,15 +166,16 @@ class UserProfileAPI(APIView):
         return Response({"status": "failed", "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
     
     def delete(self, request):
-        user_id = request.data.get('id')
+        user_id = request.GET.get('id')
         try:
-            user = UserProfile.objects.get(id=user_id)
+            user = User.objects.get(id = user_id)
+            profile = UserProfile.objects.get(user=user)
         except UserProfile.DoesNotExist:
             return Response({"status": "failed", "message": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
         
         # Set default value for profile_image
-        user.profile_image = UserProfile._meta.get_field('profile_image').get_default()
-        user.save()
+        profile.profile_image = UserProfile._meta.get_field('profile_image').get_default()
+        profile.save()
         
         return Response({'status': "success", "message": "profile deleted successfully"}, status=status.HTTP_200_OK)
     

@@ -104,7 +104,6 @@ class DeleteEbookCommand(Command):
 
     def execute(self):
         ebook = eBook.objects.get(id=self.ebook_id)
-        print(ebook.content)
         delete_file_in_google_drive(ebook.content)
         start_index = ebook.cover.find('id=') + len('id=')
         cover = ebook.cover[start_index:]

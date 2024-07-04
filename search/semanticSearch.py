@@ -56,11 +56,8 @@ class semanticSearch:
         history=[
         ]
         )
-        #print(f"What are some words related to {query} and the response should be a list?")
         response = chat_session.send_message(f"What are some words related to {query} and the response should be a list?")
-        #print(f"Response: {response.text}")
         result = response.text+ " ".join(list(synonyms)) +" "+ query
-        #print(f"Expanded query: {result}")
         return result
 
     def pad_or_truncate(self, tensor, expected_dim):
@@ -93,7 +90,7 @@ class semanticSearch:
                     }
 
                     self.es.index(index=self.index_name, body=document_body)
-                    print(f"Indexed document: {pdf_title}")
+                    # print(f"Indexed document: {pdf_title}")
                 else:
                     raise RuntimeError(f"Failed to download PDF content for {pdf_title}")
             except Exception as e:
@@ -126,7 +123,7 @@ class semanticSearch:
                 }
                 try:
                     self.es.index(index=self.index_name, body=document_body)
-                    print(f"Indexed document: {pdf_title}")
+                    # print(f"Indexed document: {pdf_title}")
                 except Exception as e:
                     raise RuntimeError(f"Error occurred while indexing {pdf_title}: {e}")
             else:
@@ -170,7 +167,6 @@ class semanticSearch:
     def semantic_search(self, query):
         try:
             combined_query = self.expand_query_with_synonyms(query)
-            #print(combined_query)
             query_vector = self.embed_text(combined_query)
             padded_text_vector = self.pad_or_truncate(query_vector, expected_dim=768)
             query_vector = padded_text_vector.tolist()
@@ -195,7 +191,6 @@ class semanticSearch:
                 if '_source' in hit and 'fileId' in hit['_source']:
                     text_title = hit['_source']['fileId']
                     if text_title not in encountered_texts:
-                        #print(f"Matched document: {hit['_source']['filename']} with score: {hit['_score']}")
                         unique_hits.append(hit)
                         encountered_texts.add(text_title)
 
@@ -252,7 +247,6 @@ class semanticSearch:
             if search_results['hits']['total']['value'] > 0:
                 for hit in search_results['hits']['hits']:
                     self.es.delete(index=self.index_name, id=hit['_id'])
-                    #print(f"Deleted document with fileId: {file_id}")
             else:
                 print(f"No document found with fileId: {file_id}")
 
