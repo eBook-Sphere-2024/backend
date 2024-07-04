@@ -202,7 +202,6 @@ def publish(request):
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
-        print(f"Error in publish view: {str(e)}")
         return Response({'message': 'An unexpected error occurred. Please try again.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 
