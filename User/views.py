@@ -216,7 +216,7 @@ class PasswordResetRequestView(APIView):
             reset_url = f"http://localhost:4200/resetPassword/{uidb64}/{token}"
             subject = 'Password Reset Requested'
             message = render_to_string('User/password_reset_email.txt', {
-                'user': user,
+                'user': user.username,
                 'reset_url': reset_url
             })
             send_mail(subject, message, 'ebooksphere210@gmail.com', [user.email])
