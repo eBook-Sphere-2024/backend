@@ -113,7 +113,6 @@ class UserAPI(APIView):
             username = data['username']
             if User.objects.annotate(username_lower=Lower('username')).filter(Q(username__iexact=username) & ~Q(id=user_id)).exists():
                 return Response({"status": "failed", "message": "Username already exists"}, status=status.HTTP_400_BAD_REQUEST)
-        
         serializer = RegisterSerializer(user, data=data, partial=True)
         
         if serializer.is_valid():

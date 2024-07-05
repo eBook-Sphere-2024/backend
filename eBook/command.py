@@ -82,7 +82,7 @@ class EditEbookCommand(Command):
                         delete_file_in_google_drive(cover)
                     except:
                         return False,"Error in deleting cover", serializer.errors
-                    DeleteEbookCommand(ebook.id).execute()
+                    eBook.objects.filter(id=ebook.id).delete()
 
                     subject = 'Response of Ebook Review'
                     message = render_to_string('ReviewEmails/reviewRejected.txt', {
