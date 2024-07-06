@@ -6,7 +6,6 @@ class Comment(models.Model):
     ebook = models.ForeignKey('eBook.eBook', on_delete=models.CASCADE, related_name='book')
     content = models.TextField()
     publish_date = models.DateTimeField(auto_now_add=True)
-    likes = models.IntegerField(default=0)
     reply_to = models.ForeignKey('self', on_delete=models.CASCADE, related_name='replies', null=True, blank=True)
 
     def __str__(self):

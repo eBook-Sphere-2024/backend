@@ -8,7 +8,6 @@ class CommentSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
     ebook = serializers.PrimaryKeyRelatedField(queryset=eBook.objects.all())
     reply_to = serializers.PrimaryKeyRelatedField(queryset=Comment.objects.all(), required=False)
-    likes = serializers.IntegerField(required=False)
     
     class Meta:
         model = Comment

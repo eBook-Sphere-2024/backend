@@ -20,14 +20,17 @@ def uploadEbookForReview(pdf_file, folderId, fileName):
         'parents': [folderId]
     }
 
+    # Define the media object for the file upload
     media = MediaIoBaseUpload(pdf_file, mimetype='application/pdf', chunksize=-1, resumable=True)
 
+    # Create the file upload request
     request = service.files().create(
         body=file_metadata,
         media_body=media,
         fields='id'
     )
 
+    # Execute the upload request, with progress monitoring
     response = None
     while response is None:
         status, response = request.next_chunk()
@@ -40,11 +43,15 @@ def uploadEbookForReview(pdf_file, folderId, fileName):
 def move_file_in_google_drive(fileId, folderIdToUpload):
     service_account_file = 'eBook/credential.json'
     creds = Credentials.from_service_account_file(service_account_file)
+
+    # Build the Google Drive service using the loaded credentials
     service = build('drive', 'v3', credentials=creds)
 
+    # Retrieve the current parent(s) of the file identified by fileId
     file = service.files().get(fileId=fileId, fields='parents').execute()
     previous_parents = ",".join(file.get('parents'))
 
+    # Update the file's parent(s) to move it to the new folder identified by folderIdToUpload
     file = service.files().update(
         fileId=fileId,
         addParents=folderIdToUpload,
@@ -102,8 +109,6 @@ def extract_first_page_as_image(pdf_file_bytes, output_image_path):
             temp_pdf_path = temp_pdf_file.name
             temp_pdf_file.write(pdf_file_bytes.getvalue())
         
-        print(f"Temporary PDF path: {temp_pdf_path}")
-        
         # Open the PDF file
         doc = fitz.open(temp_pdf_path)
         
@@ -113,16 +118,11 @@ def extract_first_page_as_image(pdf_file_bytes, output_image_path):
         # Convert the page to a pixmap
         pix = first_page.get_pixmap()
         
-        print(f"Pixmap format: {pix.colorspace} - {pix.alpha}")
-        print(f"Pixmap size: {pix.width} x {pix.height} pixels")
-        
         # Convert the Pixmap to PIL Image
         img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
         
         # Save the image as PNG
         img.save(output_image_path, format="PNG")
-        
-        print(f"First page extracted and saved as {output_image_path}")
         
         # Delete temporary PDF file
         os.remove(temp_pdf_path)
