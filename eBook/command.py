@@ -91,7 +91,7 @@ class EditEbookCommand(Command):
                     })
                     send_mail(subject, message, 'ebooksphere210@gmail.com', [ebook.author.email])
                 else:
-                    serializer.save()
+                    return False,"Not allowed",None
                 return True,"Success", serializer.data
             else:
                 return False,"Error", serializer.errors

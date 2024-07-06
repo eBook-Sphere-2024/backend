@@ -73,7 +73,6 @@ class RelatedEBookAPI(APIView):
                     # Filter eBook instances by filename
                     
                     eBooks = eBook.objects.filter(content=hit['_source']['fileId'])
-                    print(eBooks)
                     if eBooks:  # Check if any eBooks are found
                         serializer = eBookSerializer(eBooks, many=True)
                         serialized_data_with_score = [{"score": hit['_score'], "eBook": eBook_data} for eBook_data in serializer.data]
