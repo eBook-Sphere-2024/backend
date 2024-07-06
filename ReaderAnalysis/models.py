@@ -11,4 +11,4 @@ class ReaderAnalysis(models.Model):
     class Meta:
             unique_together = ('user', 'ebook')  # Ensure a user can only favorite a book once
     def __str__(self):
-        return self.highest_progress
+        return f"{self.user.username} - {self.ebook.title} - Highest Progress: {self.highest_progress}"

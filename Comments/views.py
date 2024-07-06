@@ -54,13 +54,10 @@ class CommentAPI(APIView):
         except Comment.DoesNotExist:
             return Response({"status": "failed", "message": "Comment not found"}, status=status.HTTP_404_NOT_FOUND)
         content = data.get('content')
-        likes = data.get('likes')
         update_data = {}
 
         if content is not None:
             update_data['content'] = content
-        if likes is not None:
-            update_data['likes'] = likes
         if update_data == {}:
             return Response(status=status.HTTP_400_BAD_REQUEST)
         
