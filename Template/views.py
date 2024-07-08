@@ -40,6 +40,7 @@ class TemplateAPI(APIView):
         return Response(status=status.HTTP_200_OK)
     
 def authenticate_drive_service():
+    # Initialize the Google Drive API
     SCOPES = ['https://www.googleapis.com/auth/drive']
     SERVICE_ACCOUNT_FILE = 'Template/credential.json'
     credentials = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
@@ -50,9 +51,9 @@ def get_content(file_id, drive_service):
     fh = io.BytesIO()
     downloader = MediaIoBaseDownload(fh, request)
     done = False
-    while not done:
+    while not done:  # Loop until complete
         status, done = downloader.next_chunk()
-    fh.seek(0)
+    fh.seek(0)  # Move the file pointer to the beginning (reset)
     return fh.read()
 
 class getTemplateById(APIView):

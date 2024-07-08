@@ -68,16 +68,13 @@ class RelatedEBookAPI(APIView):
             try:
                 results = semantic_search_instance.search_eBook(query)
                 eBooks_data = []
-
                 for hit in results:
                     # Filter eBook instances by filename
-                    
                     eBooks = eBook.objects.filter(content=hit['_source']['fileId'])
                     if eBooks:  # Check if any eBooks are found
                         serializer = eBookSerializer(eBooks, many=True)
                         serialized_data_with_score = [{"score": hit['_score'], "eBook": eBook_data} for eBook_data in serializer.data]
                         eBooks_data.extend(serialized_data_with_score)
-
                 sorted_eBooks = sorted(eBooks_data, key=lambda x: x['score'], reverse=True)
                 sorted_eBooks_without_score = [eBook_data['eBook'] for eBook_data in sorted_eBooks]
                 serialized_ebooks = []
@@ -90,7 +87,6 @@ class RelatedEBookAPI(APIView):
                     serialized_ebook['author'] = RegisterSerializer(author_instance).data
                     serialized_ebooks.append(serialized_ebook)
                 return Response(serialized_ebooks, status=status.HTTP_200_OK)
-
             except RuntimeError as e:
                 return Response({"status": "failed", "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         else:
