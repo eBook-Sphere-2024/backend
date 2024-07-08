@@ -40,31 +40,26 @@ class LoginAPI(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
         username = serializer.validated_data.get('username', None)
         password = serializer.validated_data.get('password', None)
-        
         if username:
             username_lower = username.lower()
-        
-        user = User.objects.filter(username__iexact=username_lower).first()
-        
+        user = User.objects.filter(username__iexact=username_lower).first() # iexact means case insensitive       
         if not user or not user.check_password(password):
             return Response({
                 'status': False,
                 'message': "Username or password is incorrect"
             }, status=status.HTTP_400_BAD_REQUEST)
-
         token, _ = Token.objects.get_or_create(user=user)
         return Response(
             str(token),
             status=status.HTTP_200_OK
         )
 
-
 class UserAPI(APIView):
     def get(self, request):
         users = User.objects.filter(is_staff=False)
         serializer = RegisterSerializer(users, many=True)
         return Response({"status": "success", "users": serializer.data}, status=status.HTTP_200_OK)
-    
+
     def post(self, request):
         data = request.data
         user_serializer = RegisterSerializer(data=data)
@@ -80,6 +75,7 @@ class UserAPI(APIView):
                     profile_serializer.save()
                     username = user_serializer.validated_data.get('username', None)
                     password = user_serializer.validated_data.get('password', None)
+                    # Authenticate to get the user object
                     user = authenticate(username=username, password=password)
                     if not user:
                         return Response({
@@ -101,7 +97,6 @@ class UserAPI(APIView):
     def patch(self, request):
         data = request.data.copy()
         user_id = data.pop('id', None)
-    
         if user_id is None:
             return Response({"status": "failed", "message": "User ID is required"}, status=status.HTTP_400_BAD_REQUEST)
         try:
@@ -113,8 +108,8 @@ class UserAPI(APIView):
             username = data['username']
             if User.objects.annotate(username_lower=Lower('username')).filter(Q(username__iexact=username) & ~Q(id=user_id)).exists():
                 return Response({"status": "failed", "message": "Username already exists"}, status=status.HTTP_400_BAD_REQUEST)
-        serializer = RegisterSerializer(user, data=data, partial=True)
         
+        serializer = RegisterSerializer(user, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -133,7 +128,7 @@ class UserAPI(APIView):
 
 
 class UserProfileAPI(APIView):
-    parser_classes = [MultiPartParser]
+    parser_classes = [MultiPartParser] # Add this line to enable file upload
     def get(self, request):
         user_id = request.GET.get('id')
         if user_id:
@@ -148,7 +143,7 @@ class UserProfileAPI(APIView):
     def patch(self, request):
         user_id = request.data.get('user')
         image_profile = request.FILES.get('profile_image')
-        request.data["profile_image"] = "yu12"
+        request.data["profile_image"] = "yu12" # Set a default value for profile_image
         try:
             user = UserProfile.objects.get(user=user_id)
         except UserProfile.DoesNotExist:
@@ -181,13 +176,15 @@ class UserProfileAPI(APIView):
 @api_view(['GET'])
 def get_User_by_Token(request):
     authorization_header = request.META.get('HTTP_AUTHORIZATION')
-    
     if authorization_header is not None:
         try:
             # Extract the token from the authorization header
             _, token_value = authorization_header.split(' ')
+            # Remove the double quotes from the token value
             token_value = token_value.replace('"', '')
+            # Get the token object associated with the token value
             token = Token.objects.get(key=token_value)
+            # Get the user object associated with the token
             user = User.objects.get(id=token.user_id)
             serializer = RegisterSerializer(user)
             return Response(serializer.data)
@@ -210,6 +207,7 @@ class PasswordResetRequestView(APIView):
         email = request.data.get('email')
         user = User.objects.filter(email=email).first()
         if user:
+            # encode user id and token
             uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
             token = default_token_generator.make_token(user)
             reset_url = f"http://localhost:4200/resetPassword/{uidb64}/{token}"
@@ -239,15 +237,13 @@ def upload_image(file, user_id):
 
     # Build the service
     service = build('drive', 'v3', credentials=credentials)
-
     # Specify the folder ID where you want to upload the image
     folder_id = '1vSQghTZFfB9rMA4nWFmKTwW6g3n-e58T'
-
-    # Check if the file already exists
+    # Check if the file already exists ,if user already have profile image
     existing_file = get_existing_file(service, folder_id, user_id)
     if existing_file:
         file_id = existing_file.get('id')
-        # Update the file content
+        # Update the file content with the new image
         media = MediaIoBaseUpload(BytesIO(image_data), mimetype='image/jpeg')
         updated_file = service.files().update(fileId=file_id, media_body=media).execute()
         return updated_file.get("id")
@@ -278,7 +274,7 @@ def GetBookAnalyticsNumbers(request):
     if not author_id and not book_id:
         return Response({'message': 'author_id and book_id are required'}, status=status.HTTP_400_BAD_REQUEST)
     try:
-        eBooks = eBook.objects.filter(author=author_id);
+        eBooks = eBook.objects.filter(author=author_id)
         Readers= ReaderAnalysis.objects.filter(ebook=book_id).count()
         comments = Comment.objects.filter(ebook=book_id).count()
         return Response({'comments': comments, 'eBooks': eBooks.count(), 'Readers': Readers}, status=status.HTTP_200_OK)
@@ -297,13 +293,7 @@ class ContactMailAPI(APIView):
             subject = serializer.validated_data['subject']
             message = serializer.validated_data['message']
             full_message = f"Message from {name} <{email}>:\n\n{message}"
-            send_mail(
-                subject,
-                full_message,
-                '{{email}}',  
-                ['ebooksphere210@gmail.com'],  
-                fail_silently=False,
-                )
+            send_mail(subject, full_message, 'eBook Sphere contact', ['ebooksphere210@gmail.com'], fail_silently=False)
             return Response({"message": "Email sent successfully"}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

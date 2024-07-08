@@ -42,6 +42,7 @@ class EditEbookCommand(Command):
             if serializer.is_valid():
                 if 'is_reviewed' not in self.data:
                     serializer.save()
+                #admin accept review
                 elif serializer.validated_data.get('is_reviewed')==True and not ebook.is_reviewed:
                     try:
                         folderIdToMoveTo = '17iMoJjzjuOvF0giYCGZjfLZuoD5hp5NI'
@@ -71,6 +72,7 @@ class EditEbookCommand(Command):
                     serializer.save()
                 elif serializer.validated_data.get('is_reviewed')==False and not ebook.is_reviewed:
                     serializer.save()
+                    #admin reject
                     #remove from drive and from ebooks table
                     try:
                         delete_file_in_google_drive(ebook.content)
@@ -83,7 +85,6 @@ class EditEbookCommand(Command):
                     except:
                         return False,"Error in deleting cover", serializer.errors
                     eBook.objects.filter(id=ebook.id).delete()
-
                     subject = 'Response of Ebook Review'
                     message = render_to_string('ReviewEmails/reviewRejected.txt', {
                         'Author': ebook.author.username,

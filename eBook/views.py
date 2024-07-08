@@ -110,26 +110,13 @@ class AuthorBooksAPI(APIView):
         author_id = request.GET.get('id')
         if author_id:
             try:
-                books = eBook.objects.filter(author=author_id)
+                books = eBook.objects.filter(author=author_id,is_reviewed=True)
                 serializer = eBookSerializer(books, many=True)
                 return Response(serializer.data)
             except User.DoesNotExist:
                 return Response({"error": "Author not found"}, status=status.HTTP_404_NOT_FOUND)
         else:
             return Response({"error": "Author ID is required"}, status=status.HTTP_400_BAD_REQUEST)
-
-@api_view(['GET'])
-def get_rating_by_ebook(request):
-    ebook_id = request.GET.get('id')
-    if not ebook_id:
-        return Response({"error": "ebook_id is required"}, status=status.HTTP_400_BAD_REQUEST)
-    
-    ebook = get_object_or_404(eBook, id=ebook_id)
-    ratings = Rating.objects.filter(ebook=ebook)
-    serializer = RatingSerializer(ratings, many=True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
-
-
 
 class RatingBooksAPI(APIView):
     # get rating by ebookid
@@ -143,7 +130,6 @@ class RatingBooksAPI(APIView):
         
         # Calculate the average rating value
         average_rating = ratings.aggregate(Avg('rate'))['rate__avg']
-        
         return Response(average_rating, status=status.HTTP_200_OK)
     
     def put(self, request):
@@ -192,8 +178,6 @@ def publish(request):
             'is_reviewed': False  ,
             'categories': selected_categories
         }
-
-
         # Serialize the eBook data
         serializer = eBookSerializer(data=ebook_data)
         if serializer.is_valid():

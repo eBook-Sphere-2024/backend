@@ -51,7 +51,6 @@ class semanticSearch:
         # safety_settings = Adjust safety settings
         # See https://ai.google.dev/gemini-api/docs/safety-settings
         )
-
         chat_session = model.start_chat(
         history=[
         ]
@@ -65,10 +64,10 @@ class semanticSearch:
         if current_dim == expected_dim:
             return tensor
         elif current_dim < expected_dim:
-            padding = torch.zeros(expected_dim - current_dim)
+            padding = torch.zeros(expected_dim - current_dim) # add zeros to Pad with zeros
             return torch.cat((tensor, padding))
         else:
-            return tensor[:expected_dim]
+            return tensor[:expected_dim] # Truncate the tensor to the expected dimension
 
     def index_documents(self, file_list, drive_service):
         for file in file_list:
@@ -81,7 +80,6 @@ class semanticSearch:
                     embedded_text = self.embed_text(text_to_embed)
                     padded_text_vector = self.pad_or_truncate(embedded_text, expected_dim=768)
                     embedded_text_list = padded_text_vector.tolist()
-
                     document_body = {
                         'filename': pdf_title,
                         'text': pdf_content,
@@ -140,27 +138,22 @@ class semanticSearch:
             done = False
             while not done:
                 status, done = downloader.next_chunk()
-
             file_stream.seek(0)
             document = fitz.open(stream=file_stream, filetype='pdf')
             pdf_content = ''
-
             for page_num in range(len(document)):
                 page = document.load_page(page_num)
                 page_text = page.get_text()
-
                 if page_text:
                     pdf_content += page_text + '\n'
                 else:
+                    # OCR
                     pix = page.get_pixmap()
                     image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
                     image_text = pytesseract.image_to_string(image)
                     pdf_content += image_text + '\n'
-
             document.close()
-
-            return pdf_content.strip()
-        
+            return pdf_content.strip() # Remove leading and trailing whitespace
         except Exception as e:
             raise RuntimeError(f"Error occurred while downloading PDF content for file ID {file_id}: {e}")
 
@@ -170,7 +163,9 @@ class semanticSearch:
             query_vector = self.embed_text(combined_query)
             padded_text_vector = self.pad_or_truncate(query_vector, expected_dim=768)
             query_vector = padded_text_vector.tolist()
-
+            # use a script_score query to compute the cosine similarity between the query vector 
+            # and the text_vector field in the indexed documents. This similarity score is used 
+            # to rank the documents.
             es_query = {
                 "query": {
                     "script_score": {
@@ -182,20 +177,17 @@ class semanticSearch:
                     }
                 }
             }
-
             search_results = self.es.search(index=self.index_name, body=es_query)
+            # remove duplicates
             unique_hits = []
             encountered_texts = set()
-
             for hit in search_results['hits']['hits']:
                 if '_source' in hit and 'fileId' in hit['_source']:
                     text_title = hit['_source']['fileId']
                     if text_title not in encountered_texts:
                         unique_hits.append(hit)
                         encountered_texts.add(text_title)
-
             return unique_hits
-        
         except Exception as e:
             raise RuntimeError(f"Error occurred during semantic search: {e}")
 
@@ -240,7 +232,6 @@ class semanticSearch:
                     }
                 }
             }
-
             search_results = self.es.search(index=self.index_name, body=search_query)
             
             # Delete the document if found

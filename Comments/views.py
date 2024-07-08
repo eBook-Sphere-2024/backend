@@ -55,14 +55,11 @@ class CommentAPI(APIView):
             return Response({"status": "failed", "message": "Comment not found"}, status=status.HTTP_404_NOT_FOUND)
         content = data.get('content')
         update_data = {}
-
         if content is not None:
             update_data['content'] = content
         if update_data == {}:
             return Response(status=status.HTTP_400_BAD_REQUEST)
-        
         serializer = CommentSerializer(obj, data=update_data, partial=True)
-
         if serializer.is_valid():
             serializer.save()
             return Response({"status": "success", "Comments": serializer.data}, status=status.HTTP_200_OK)

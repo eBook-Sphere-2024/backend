@@ -35,7 +35,7 @@ class RegisterSerializer(serializers.Serializer):
             first_name=validated_data['first_name'],
             last_name=validated_data['last_name']
         )
-        user.set_password(validated_data['password'])
+        user.set_password(validated_data['password']) #encrypt password
         user.save()
         return user
     
@@ -69,7 +69,7 @@ class ChangePasswordSerializer(serializers.Serializer):
 
     def save(self, **kwargs):
         user = User.objects.get(username=self.validated_data['username'])
-        user.set_password(self.validated_data['new_password'])
+        user.set_password(self.validated_data['new_password']) #encrypt new password
         user.save()
         return user
     
@@ -94,6 +94,7 @@ class SetNewPasswordSerializer(serializers.Serializer):
 
     def save(self, **kwargs):
         try:
+            # urlsafe_base64_decode() decodes user id to bytestring 
             uid = force_str(urlsafe_base64_decode(self.validated_data['uidb64']))
             user = User.objects.get(pk=uid)
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):
@@ -102,7 +103,7 @@ class SetNewPasswordSerializer(serializers.Serializer):
         if not default_token_generator.check_token(user, self.validated_data['token']):
             raise serializers.ValidationError("Invalid token or user ID.")
 
-        user.set_password(self.validated_data['new_password'])
+        user.set_password(self.validated_data['new_password']) #encrypt new password
         user.save()
         return user
     
